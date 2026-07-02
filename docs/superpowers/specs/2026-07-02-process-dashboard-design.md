@@ -27,6 +27,7 @@ side-by-side.
 ## Scope
 
 **In scope (Milestone 1):**
+
 - Live process table with columns: **Name, PID, CPU%, Memory**.
 - Auto-refresh at ~1 Hz.
 - Click-to-sort on every column (ascending/descending).
@@ -35,6 +36,7 @@ side-by-side.
 - Non-sandboxed; run locally from Xcode. No App Store distribution concerns yet.
 
 **Out of scope (documented for the future):**
+
 - Milestone 2: kill/quit a selected process (with confirmation) — teaches `kill()`/signals.
 - Milestone 3: detail pane (path, parent PID, start time, thread count, …).
 - Later: system-vitals header via the `ProcessInfo` class.
@@ -65,7 +67,7 @@ side-by-side.
 Four units, each independently understandable and testable, with the unsafe C surface
 isolated to a single file.
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │  SwiftUI View layer                                      │
 │   • ContentView  → Table(processes) with SortDescriptors │
