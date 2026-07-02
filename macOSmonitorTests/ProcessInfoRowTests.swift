@@ -18,4 +18,14 @@ struct ProcessInfoRowTests {
         #expect(live.cpuSortKey == 3.5)
         #expect(live.memSortKey == 100)
     }
+
+    @Test func ownedRowCanTerminate() {
+        let owned = ProcessInfoRow(pid: 1, name: "mine", cpuPercent: nil, memoryBytes: 4096)
+        #expect(owned.canTerminate == true)
+    }
+
+    @Test func deniedRowCannotTerminate() {
+        let denied = ProcessInfoRow(pid: 2, name: "theirs", cpuPercent: nil, memoryBytes: nil)
+        #expect(denied.canTerminate == false)
+    }
 }

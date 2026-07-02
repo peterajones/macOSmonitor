@@ -14,4 +14,8 @@ struct ProcessInfoRow: Identifiable, Hashable, Sendable {
     /// Non-optional keys so `Table` columns can sort; missing detail sinks to the bottom.
     var cpuSortKey: Double { cpuPercent ?? -1 }
     var memSortKey: UInt64 { memoryBytes ?? 0 }
+
+    /// True when we could read this process's task info, which under the same euid
+    /// ownership check means we can also signal it. Drives enabling of Quit/Force Quit.
+    var canTerminate: Bool { memoryBytes != nil }
 }
