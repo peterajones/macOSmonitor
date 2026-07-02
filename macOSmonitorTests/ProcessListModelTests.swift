@@ -1,5 +1,6 @@
 import Testing
 import Darwin
+import Foundation
 @testable import macOSmonitor
 
 final class FakeSampler: ProcessSampling, @unchecked Sendable {
@@ -15,6 +16,12 @@ final class FakeTerminator: ProcessTerminating, @unchecked Sendable {
     func terminate(pid: pid_t, force: Bool) -> TerminationResult {
         lastPID = pid; lastForce = force; return result
     }
+}
+
+final class FakeDetailProvider: ProcessDetailProviding, @unchecked Sendable {
+    var result: ProcessDetails?
+    private(set) var lastPID: pid_t?
+    func details(pid: pid_t) -> ProcessDetails? { lastPID = pid; return result }
 }
 
 @MainActor
@@ -42,5 +49,23 @@ struct ProcessListModelTests {
         #expect(fake.lastPID == 4321)
         #expect(fake.lastForce == true)
         #expect(result == .denied)
+    }
+
+    @Test func refreshDetailsPublishesForSelectedPID() {
+        let detail = ProcessDetails(path: "/bin/x", parentPID: 1,
+                                    startDate: Date(timeIntervalSince1970: 0),
+                                    threadCount: 3, user: "me", status: "Running")
+        let fake = FakeDetailProvider()
+        fake.result = detail
+        let model = ProcessListModel(sampler: FakeSampler(), detailProvider: fake)
+
+        model.selectedPID = 55
+        model.refreshDetails()
+        #expect(fake.lastPID == 55)
+        #expect(model.selectedDetails == detail)
+
+        model.selectedPID = nil
+        model.refreshDetails()
+        #expect(model.selectedDetails == nil)
     }
 }
