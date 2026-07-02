@@ -26,6 +26,13 @@ struct ProcessTerminatorTests {
         #expect(sut.terminate(pid: 1, force: false) == .denied)   // pid 1 = launchd
     }
 
+    // POSIX kill() treats pid 0 / -1 / negative as process-group or broadcast targets.
+    // The shim must reject these before calling kill(), never signalling a group.
+    @Test(arguments: [pid_t(0), pid_t(-1), pid_t(-1000)])
+    func rejectsNonPositivePIDsWithoutSignalling(_ pid: pid_t) {
+        #expect(sut.terminate(pid: pid, force: true) == .noSuchProcess)
+    }
+
     @Test func noSuchProcessForReapedChild() throws {
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/bin/sleep")
