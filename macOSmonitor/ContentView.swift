@@ -106,7 +106,7 @@ struct ContentView: View {
     private func performTermination(_ item: PendingTermination) {
         switch model.terminate(pid: item.pid, force: item.force) {
         case .success:
-            break
+            break   // process drops off the next ~1 Hz refresh
         case .denied:
             errorMessage = "Couldn’t terminate “\(item.name)”: permission denied."
         case .noSuchProcess:
@@ -116,7 +116,8 @@ struct ContentView: View {
         }
     }
 
-    /// Bridges an optional-state binding to the Bool binding dialogs/alerts want.
+    /// Bridges an optional-state binding to the Bool binding dialogs/alerts want:
+    /// present when non-nil, clear the state when dismissed.
     private func presenting<T>(_ source: Binding<T?>) -> Binding<Bool> {
         Binding(
             get: { source.wrappedValue != nil },
