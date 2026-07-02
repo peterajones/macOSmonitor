@@ -8,12 +8,14 @@ import SwiftUI
 struct ContentView: View {
     @State private var model = ProcessListModel()
     @State private var sortOrder = [KeyPathComparator(\ProcessInfoRow.cpuSortKey, order: .reverse)]
-    @State private var selection: pid_t?
+    @State private var showInspector = true
     @State private var pendingTermination: PendingTermination?
     @State private var errorMessage: String?
 
     var body: some View {
-        Table(model.rows.sorted(using: sortOrder), selection: $selection, sortOrder: $sortOrder) {
+        @Bindable var model = model   // enables $model.selectedPID binding
+
+        Table(model.rows.sorted(using: sortOrder), selection: $model.selectedPID, sortOrder: $sortOrder) {
             TableColumn("Name", value: \.name)
             TableColumn("PID", value: \.pid) { row in
                 Text(String(row.pid))
@@ -43,10 +45,20 @@ struct ContentView: View {
                 Button("Force Quit") { requestTermination(selectedRow, force: true) }
                     .disabled(selectedRow?.canTerminate != true)
             }
+            ToolbarItem {
+                Button { showInspector.toggle() } label: {
+                    Label("Toggle Inspector", systemImage: "sidebar.trailing")
+                }
+            }
         }
-        .frame(minWidth: 520, minHeight: 360)
+        .frame(minWidth: 720, minHeight: 400)
         .navigationTitle("macOSmonitor")
         .task { await model.run() }
+        .onChange(of: model.selectedPID) { model.refreshDetails() }
+        .inspector(isPresented: $showInspector) {
+            ProcessDetailView(row: selectedRow, details: model.selectedDetails)
+                .inspectorColumnWidth(min: 240, ideal: 300, max: 420)
+        }
         .confirmationDialog(
             confirmTitle,
             isPresented: presenting($pendingTermination),
@@ -75,8 +87,8 @@ struct ContentView: View {
     // MARK: - Selection helpers
 
     private var selectedRow: ProcessInfoRow? {
-        guard let selection else { return nil }
-        return model.rows.first { $0.id == selection }
+        guard let pid = model.selectedPID else { return nil }
+        return model.rows.first { $0.id == pid }
     }
 
     private var confirmTitle: String {
@@ -94,7 +106,7 @@ struct ContentView: View {
     private func performTermination(_ item: PendingTermination) {
         switch model.terminate(pid: item.pid, force: item.force) {
         case .success:
-            break   // process drops off the next ~1 Hz refresh
+            break
         case .denied:
             errorMessage = "Couldn’t terminate “\(item.name)”: permission denied."
         case .noSuchProcess:
@@ -104,8 +116,7 @@ struct ContentView: View {
         }
     }
 
-    /// Bridges an optional-state binding to the Bool binding `.confirmationDialog`/`.alert` want:
-    /// present when non-nil, clear the state when dismissed.
+    /// Bridges an optional-state binding to the Bool binding dialogs/alerts want.
     private func presenting<T>(_ source: Binding<T?>) -> Binding<Bool> {
         Binding(
             get: { source.wrappedValue != nil },
