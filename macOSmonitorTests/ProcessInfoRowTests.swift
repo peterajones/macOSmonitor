@@ -60,4 +60,26 @@ struct ProcessInfoRowTests {
         #expect(row.cpuText == "12.3")
         #expect(row.memoryText.isEmpty == false)
     }
+
+    @Test func cpuTimeTextAndSortKeyFallBackWhenNil() {
+        let row = ProcessInfoRow(pid: 1, name: "x", cpuPercent: nil, memoryBytes: nil)
+        #expect(row.cpuTimeText == "—")
+        #expect(row.cpuTimeSortKey == 0)
+    }
+
+    @Test func cpuTimeTextFormatsSubHour() {
+        let sub = ProcessInfoRow(pid: 1, name: "x", cpuPercent: nil, memoryBytes: nil,
+                                 cpuTimeNanos: 3_030_000_000)              // 3.03s
+        #expect(sub.cpuTimeText == "0:03.03")
+        let mins = ProcessInfoRow(pid: 2, name: "y", cpuPercent: nil, memoryBytes: nil,
+                                  cpuTimeNanos: 125_370_000_000)           // 2:05.37
+        #expect(mins.cpuTimeText == "2:05.37")
+    }
+
+    @Test func cpuTimeTextRollsOverToHours() {
+        let hour = ProcessInfoRow(pid: 3, name: "z", cpuPercent: nil, memoryBytes: nil,
+                                  cpuTimeNanos: 5_025_000_000_000)          // 1:23:45
+        #expect(hour.cpuTimeText == "1:23:45")
+        #expect(hour.cpuTimeSortKey == 5_025_000_000_000)
+    }
 }

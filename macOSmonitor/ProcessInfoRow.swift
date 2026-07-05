@@ -9,6 +9,7 @@ struct ProcessInfoRow: Identifiable, Hashable, Sendable {
     let name: String
     var cpuPercent: Double?
     var memoryBytes: UInt64?
+    var cpuTimeNanos: UInt64? = nil
 
     var id: pid_t { pid }
 
@@ -19,6 +20,23 @@ struct ProcessInfoRow: Identifiable, Hashable, Sendable {
     /// True when we could read this process's task info, which under the same euid
     /// ownership check means we can also signal it. Drives enabling of Quit/Force Quit.
     var canTerminate: Bool { memoryBytes != nil }
+
+    /// Cumulative user+system CPU time, or "—" when unreadable. Adaptive format:
+    /// M:SS.ss under an hour, H:MM:SS at/beyond an hour (matches Activity Monitor).
+    var cpuTimeText: String {
+        guard let nanos = cpuTimeNanos else { return "—" }
+        let seconds = Double(nanos) / 1_000_000_000
+        if seconds < 3600 {
+            let minutes = Int(seconds) / 60
+            let secs = seconds - Double(minutes * 60)
+            return String(format: "%d:%05.2f", minutes, secs)
+        } else {
+            let total = Int(seconds)
+            return String(format: "%d:%02d:%02d", total / 3600, (total % 3600) / 60, total % 60)
+        }
+    }
+
+    var cpuTimeSortKey: UInt64 { cpuTimeNanos ?? 0 }
 
     /// Case-insensitive substring match against name or PID. Empty/whitespace → matches all.
     func matches(_ query: String) -> Bool {
