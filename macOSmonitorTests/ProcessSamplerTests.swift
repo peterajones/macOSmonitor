@@ -42,6 +42,16 @@ struct ProcessSamplerTests {
         #expect(rows.first?.cpuPercent == 50.0)
     }
 
+    @Test func ownedRowCarriesCumulativeCPUTime() async {
+        let fake = FakeProcInfo()
+        fake.pids = [42]; fake.names = [42: "worker"]
+        fake.results = [42: ProcTaskSample(residentBytes: 2048, cpuTimeNanos: 7_000_000_000)]
+        let sampler = ProcessSampler(source: fake, now: { 0 })
+
+        let rows = await sampler.sample()
+        #expect(rows.first?.cpuTimeNanos == 7_000_000_000)
+    }
+
     @Test func deniedProcessYieldsNamePidOnly() async {
         let fake = FakeProcInfo()
         fake.pids = [7]; fake.names = [7: "root-proc"]
@@ -52,5 +62,6 @@ struct ProcessSamplerTests {
         #expect(rows.first?.name == "root-proc")
         #expect(rows.first?.cpuPercent == nil)
         #expect(rows.first?.memoryBytes == nil)
+        #expect(rows.first?.cpuTimeNanos == nil)
     }
 }

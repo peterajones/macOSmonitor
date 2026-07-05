@@ -41,7 +41,8 @@ actor ProcessSampler: ProcessSampling {
                 cpuPercent = 100.0 * Double(cpuDelta) / Double(wallDelta)
             }
             rows.append(ProcessInfoRow(pid: pid, name: name,
-                                       cpuPercent: cpuPercent, memoryBytes: s.residentBytes))
+                                       cpuPercent: cpuPercent, memoryBytes: s.residentBytes,
+                                       cpuTimeNanos: s.cpuTimeNanos))
         }
 
         previousCPU = currentCPU
