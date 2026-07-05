@@ -145,6 +145,10 @@ private struct ProcessTableView: View {
                 Text(row.cpuText)
                     .monospacedDigit()
             }
+            TableColumn("CPU Time", value: \.cpuTimeSortKey) { row in
+                Text(row.cpuTimeText)
+                    .monospacedDigit()
+            }
             TableColumn("Memory", value: \.memSortKey) { row in
                 Text(row.memoryText)
                     .monospacedDigit()

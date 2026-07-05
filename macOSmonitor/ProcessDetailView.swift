@@ -12,6 +12,7 @@ struct ProcessDetailView: View {
                     LabeledContent("Name", value: row.name)
                     LabeledContent("PID", value: String(row.pid))
                     LabeledContent("CPU %", value: row.cpuText)
+                    LabeledContent("CPU Time", value: row.cpuTimeText)
                     LabeledContent("Memory", value: row.memoryText)
                 }
                 if let details {
