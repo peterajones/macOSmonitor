@@ -11,10 +11,8 @@ struct ProcessDetailView: View {
                 Section("Process") {
                     LabeledContent("Name", value: row.name)
                     LabeledContent("PID", value: String(row.pid))
-                    LabeledContent("CPU %", value: row.cpuPercent.map { String(format: "%.1f", $0) } ?? "—")
-                    LabeledContent("Memory", value: row.memoryBytes.map {
-                        ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory)
-                    } ?? "—")
+                    LabeledContent("CPU %", value: row.cpuText)
+                    LabeledContent("Memory", value: row.memoryText)
                 }
                 if let details {
                     Section("Details") {

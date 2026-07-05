@@ -9,28 +9,18 @@ struct ContentView: View {
     @State private var model = ProcessListModel()
     @State private var sortOrder = [KeyPathComparator(\ProcessInfoRow.cpuSortKey, order: .reverse)]
     @State private var showInspector = true
+    @State private var searchText = ""
     @State private var pendingTermination: PendingTermination?
     @State private var errorMessage: String?
 
     var body: some View {
         @Bindable var model = model   // enables $model.selectedPID binding
 
-        Table(model.rows.sorted(using: sortOrder), selection: $model.selectedPID, sortOrder: $sortOrder) {
-            TableColumn("Name", value: \.name)
-            TableColumn("PID", value: \.pid) { row in
-                Text(String(row.pid))
-            }
-            TableColumn("CPU %", value: \.cpuSortKey) { row in
-                Text(row.cpuPercent.map { String(format: "%.1f", $0) } ?? "—")
-                    .monospacedDigit()
-            }
-            TableColumn("Memory", value: \.memSortKey) { row in
-                Text(row.memoryBytes.map {
-                    ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory)
-                } ?? "—")
-                .monospacedDigit()
-            }
-        }
+        ProcessTableView(
+            data: model.rows.filter { $0.matches(searchText) }.sorted(using: sortOrder),
+            selection: $model.selectedPID,
+            sortOrder: $sortOrder
+        )
         .contextMenu(forSelectionType: pid_t.self) { ids in
             let row = ids.first.flatMap { id in model.rows.first(where: { $0.id == id }) }
             Button("Quit") { requestTermination(row, force: false) }
@@ -53,6 +43,7 @@ struct ContentView: View {
         }
         .frame(minWidth: 720, minHeight: 400)
         .navigationTitle("macOSmonitor")
+        .searchable(text: $searchText, placement: .toolbar, prompt: "Filter by name or PID")
         .task { await model.run() }
         .onChange(of: model.selectedPID) { model.refreshDetails() }
         .inspector(isPresented: $showInspector) {
@@ -132,6 +123,31 @@ private struct PendingTermination: Identifiable {
     let pid: pid_t
     let name: String
     let force: Bool
+}
+
+// MARK: - Table Helper View
+
+struct ProcessTableView: View {
+    let data: [ProcessInfoRow]
+    @Binding var selection: pid_t?
+    @Binding var sortOrder: [KeyPathComparator<ProcessInfoRow>]
+
+    var body: some View {
+        Table(data, selection: $selection, sortOrder: $sortOrder) {
+            TableColumn("Name", value: \.name)
+            TableColumn("PID", value: \.pid) { row in
+                Text(String(row.pid))
+            }
+            TableColumn("CPU %", value: \.cpuSortKey) { row in
+                Text(row.cpuText)
+                    .monospacedDigit()
+            }
+            TableColumn("Memory", value: \.memSortKey) { row in
+                Text(row.memoryText)
+                    .monospacedDigit()
+            }
+        }
+    }
 }
 
 #Preview {
