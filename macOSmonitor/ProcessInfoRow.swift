@@ -25,14 +25,17 @@ struct ProcessInfoRow: Identifiable, Hashable, Sendable {
     /// M:SS.ss under an hour, H:MM:SS at/beyond an hour (matches Activity Monitor).
     var cpuTimeText: String {
         guard let nanos = cpuTimeNanos else { return "—" }
-        let seconds = Double(nanos) / 1_000_000_000
-        if seconds < 3600 {
-            let minutes = Int(seconds) / 60
-            let secs = seconds - Double(minutes * 60)
-            return String(format: "%d:%05.2f", minutes, secs)
+        // Round to hundredths ONCE, then decompose with integer math so fractional
+        // rounding can never push the seconds field to 60 (e.g. avoid "1:60.00").
+        let totalCentiseconds = Int((Double(nanos) / 10_000_000).rounded())
+        let totalSeconds = totalCentiseconds / 100
+        if totalSeconds < 3600 {
+            let minutes = totalSeconds / 60
+            let centisInMinute = totalCentiseconds - minutes * 6000
+            return String(format: "%d:%02d.%02d", minutes, centisInMinute / 100, centisInMinute % 100)
         } else {
-            let total = Int(seconds)
-            return String(format: "%d:%02d:%02d", total / 3600, (total % 3600) / 60, total % 60)
+            return String(format: "%d:%02d:%02d",
+                          totalSeconds / 3600, (totalSeconds % 3600) / 60, totalSeconds % 60)
         }
     }
 

@@ -82,4 +82,20 @@ struct ProcessInfoRowTests {
         #expect(hour.cpuTimeText == "1:23:45")
         #expect(hour.cpuTimeSortKey == 5_025_000_000_000)
     }
+
+    @Test func cpuTimeTextDoesNotOverflowSecondsAtBoundary() {
+        // 119.9996s must render as 2:00.00, never 1:60.00.
+        let row = ProcessInfoRow(pid: 4, name: "b", cpuPercent: nil, memoryBytes: nil,
+                                 cpuTimeNanos: 119_999_600_000)
+        #expect(row.cpuTimeText == "2:00.00")
+    }
+
+    @Test func cpuTimeTextZeroAndExactHour() {
+        let zero = ProcessInfoRow(pid: 5, name: "c", cpuPercent: nil, memoryBytes: nil,
+                                  cpuTimeNanos: 0)
+        #expect(zero.cpuTimeText == "0:00.00")
+        let hour = ProcessInfoRow(pid: 6, name: "d", cpuPercent: nil, memoryBytes: nil,
+                                  cpuTimeNanos: 3_600_000_000_000)
+        #expect(hour.cpuTimeText == "1:00:00")
+    }
 }
