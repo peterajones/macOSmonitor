@@ -10,6 +10,7 @@ struct ContentView: View {
     @State private var sortOrder = [KeyPathComparator(\ProcessInfoRow.cpuSortKey, order: .reverse)]
     @State private var showInspector = true
     @State private var searchText = ""
+    @State private var searchPresented = false
     @State private var pendingTermination: PendingTermination?
     @State private var errorMessage: String?
 
@@ -43,7 +44,9 @@ struct ContentView: View {
         }
         .frame(minWidth: 720, minHeight: 400)
         .navigationTitle("macOSmonitor")
-        .searchable(text: $searchText, placement: .toolbar, prompt: "Filter by name or PID")
+        .searchable(text: $searchText, isPresented: $searchPresented,
+                    placement: .toolbar, prompt: "Filter by name or PID")
+        .focusedSceneValue(\.searchPresented, $searchPresented)
         .task { await model.run() }
         .onChange(of: model.selectedPID) { model.refreshDetails() }
         .inspector(isPresented: $showInspector) {
@@ -127,7 +130,7 @@ private struct PendingTermination: Identifiable {
 
 // MARK: - Table Helper View
 
-struct ProcessTableView: View {
+private struct ProcessTableView: View {
     let data: [ProcessInfoRow]
     @Binding var selection: pid_t?
     @Binding var sortOrder: [KeyPathComparator<ProcessInfoRow>]
