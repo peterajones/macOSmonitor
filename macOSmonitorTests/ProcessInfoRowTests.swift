@@ -28,4 +28,36 @@ struct ProcessInfoRowTests {
         let denied = ProcessInfoRow(pid: 2, name: "theirs", cpuPercent: nil, memoryBytes: nil)
         #expect(denied.canTerminate == false)
     }
+
+    @Test func matchesEmptyOrWhitespaceQueryReturnsTrue() {
+        let row = ProcessInfoRow(pid: 42, name: "Safari", cpuPercent: nil, memoryBytes: nil)
+        #expect(row.matches("") == true)
+        #expect(row.matches("   ") == true)
+    }
+
+    @Test func matchesNameCaseInsensitiveSubstring() {
+        let row = ProcessInfoRow(pid: 42, name: "Safari", cpuPercent: nil, memoryBytes: nil)
+        #expect(row.matches("saf") == true)
+        #expect(row.matches("ARI") == true)
+        #expect(row.matches("chrome") == false)
+    }
+
+    @Test func matchesPIDSubstring() {
+        let row = ProcessInfoRow(pid: 7712, name: "Safari", cpuPercent: nil, memoryBytes: nil)
+        #expect(row.matches("771") == true)
+        #expect(row.matches("7712") == true)
+        #expect(row.matches("99") == false)
+    }
+
+    @Test func textPropertiesFallBackToDashWhenMissing() {
+        let denied = ProcessInfoRow(pid: 1, name: "x", cpuPercent: nil, memoryBytes: nil)
+        #expect(denied.cpuText == "—")
+        #expect(denied.memoryText == "—")
+    }
+
+    @Test func cpuTextFormatsOneDecimalAndMemoryTextNonEmpty() {
+        let row = ProcessInfoRow(pid: 1, name: "x", cpuPercent: 12.34, memoryBytes: 1024)
+        #expect(row.cpuText == "12.3")
+        #expect(row.memoryText.isEmpty == false)
+    }
 }
