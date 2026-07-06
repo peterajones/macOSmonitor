@@ -12,7 +12,7 @@ struct SystemVitals: Equatable, Sendable {
     let uptime: TimeInterval
     let osVersion: String        // e.g. "macOS 26.5"
 
-    var cpuText: String { "CPU \(Int(cpuUsagePercent.rounded()))%" }
+    var cpuText: String { "\(Int(cpuUsagePercent.rounded()))%" }
 
     var memoryText: String {
         let usedGB = Double(usedMemoryBytes) / 1_000_000_000
@@ -20,14 +20,12 @@ struct SystemVitals: Equatable, Sendable {
         return String(format: "%.1f / %.0f GB", usedGB, totalGB)
     }
 
-    var coresText: String { "\(coreCount) cores" }
-
     var uptimeText: String {
         let s = Int(uptime)
         let d = s / 86_400, h = (s % 86_400) / 3_600, m = (s % 3_600) / 60
-        if d > 0 { return "up \(d)d \(h)h" }
-        if h > 0 { return "up \(h)h \(m)m" }
-        return "up \(m)m"
+        if d > 0 { return "\(d)d \(h)h" }
+        if h > 0 { return "\(h)h \(m)m" }
+        return "\(m)m"
     }
 }
 

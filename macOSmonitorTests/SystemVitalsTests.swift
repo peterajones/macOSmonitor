@@ -11,18 +11,14 @@ struct SystemVitalsTests {
     }
 
     @Test func cpuTextRoundsToWholePercent() {
-        #expect(make(cpu: 34.4).cpuText == "CPU 34%")
+        #expect(make(cpu: 34.4).cpuText == "34%")
     }
 
     @Test func memoryTextIsDecimalGB() {
         #expect(make(used: 12_300_000_000, total: 32_000_000_000).memoryText == "12.3 / 32 GB")
     }
 
-    @Test func coresText() {
-        #expect(make(cores: 10).coresText == "10 cores")
-    }
-
     @Test func uptimeTextDaysHours() {
-        #expect(make(uptime: 3 * 86_400 + 4 * 3_600 + 30 * 60).uptimeText == "up 3d 4h")
+        #expect(make(uptime: 3 * 86_400 + 4 * 3_600 + 30 * 60).uptimeText == "3d 4h")
     }
 }
