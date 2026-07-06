@@ -32,4 +32,16 @@ struct SystemVitalsSamplerTests {
         #expect(v.coreCount == ProcessInfo.processInfo.processorCount)
         #expect(v.osVersion.hasPrefix("macOS "))
     }
+
+    @Test func counterWraparoundDoesNotCrashAndYieldsZero() async {
+        // busy goes backwards while total advances (per-core 32-bit wrap): must not trap.
+        let fake = FakeHostStats()
+        fake.ticks = (busy: 500, total: 1_000)
+        let sampler = SystemVitalsSampler(host: fake)
+        _ = await sampler.sample()                          // baseline
+
+        fake.ticks = (busy: 100, total: 1_100)              // busy dropped, total rose
+        let next = await sampler.sample()
+        #expect(next.cpuUsagePercent == 0)                  // skipped safely, no crash
+    }
 }

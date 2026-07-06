@@ -18,7 +18,11 @@ actor SystemVitalsSampler: SystemVitalsSampling {
     func sample() -> SystemVitals {
         var cpuPercent = 0.0
         if let ticks = host.cpuTicks() {
-            if let previous = previousTicks, ticks.total > previous.total {
+            // Require both counters to be monotonic before subtracting: per-core 32-bit
+            // tick counters can wrap on extreme uptime, and an unguarded UInt64 subtraction
+            // would trap. If either counter went backwards, skip this tick (0%).
+            if let previous = previousTicks,
+               ticks.total > previous.total, ticks.busy >= previous.busy {
                 let deltaBusy = ticks.busy - previous.busy
                 let deltaTotal = ticks.total - previous.total
                 if deltaTotal > 0 { cpuPercent = 100.0 * Double(deltaBusy) / Double(deltaTotal) }
