@@ -33,6 +33,17 @@ struct ProcessDetailView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                Section("Ports") {
+                    if model.selectedPorts.isEmpty {
+                        Text("No open ports.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(Array(model.selectedPorts.enumerated()), id: \.offset) { _, port in
+                            Text(port.displayText)
+                                .monospaced()
+                        }
+                    }
+                }
             }
             .formStyle(.grouped)
         } else {

@@ -48,7 +48,7 @@ struct ContentView: View {
                     placement: .toolbar, prompt: "Filter by name or PID")
         .focusedSceneValue(\.searchPresented, $searchPresented)
         .task { await model.run() }
-        .onChange(of: model.selectedPID) { model.refreshDetails() }
+        .onChange(of: model.selectedPID) { model.refreshSelection() }
         .inspector(isPresented: $showInspector) {
             ProcessDetailView(model: model)
                 .inspectorColumnWidth(min: 240, ideal: 300, max: 420)
