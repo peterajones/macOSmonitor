@@ -24,8 +24,6 @@ protocol ProcessPortProviding: Sendable {
     func ports(pid: pid_t) -> [ProcessPort]
 }
 
-import Foundation
-
 extension ProcInfo: ProcessPortProviding {
     func ports(pid: pid_t) -> [ProcessPort] {
         // Enumerate the process's file descriptors.
@@ -82,8 +80,10 @@ extension ProcInfo: ProcessPortProviding {
         if foreignPort != 0 {
             let remoteText = isV6 ? ipv6(ini.insi_faddr.ina_6)
                                   : ipv4(ini.insi_faddr.ina_46.i46a_addr4)
-            remoteAddress = remoteText.map(wildcarded)
-            remotePort = foreignPort
+            if let remote = remoteText.map(wildcarded) {
+                remoteAddress = remote
+                remotePort = foreignPort   // set the pair together, or leave both nil
+            }
         }
         return ProcessPort(protocolName: protocolName, localAddress: local, localPort: localPort,
                            remoteAddress: remoteAddress, remotePort: remotePort, state: state)
