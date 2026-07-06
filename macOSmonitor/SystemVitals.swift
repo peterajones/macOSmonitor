@@ -30,3 +30,53 @@ struct SystemVitals: Equatable, Sendable {
         return "up \(m)m"
     }
 }
+
+import Darwin
+import Darwin.Mach
+
+/// Raw host CPU/memory reads, isolated behind a protocol so the sampler can be tested with a fake.
+protocol HostStatsProviding: Sendable {
+    func cpuTicks() -> (busy: UInt64, total: UInt64)?
+    func memory() -> (used: UInt64, total: UInt64)?
+}
+
+struct HostStats: HostStatsProviding {
+    func cpuTicks() -> (busy: UInt64, total: UInt64)? {
+        var cpuCount: natural_t = 0
+        var info: processor_info_array_t?
+        var infoCount: mach_msg_type_number_t = 0
+        let result = host_processor_info(mach_host_self(), PROCESSOR_CPU_LOAD_INFO,
+                                         &cpuCount, &info, &infoCount)
+        guard result == KERN_SUCCESS, let info else { return nil }
+        defer {
+            vm_deallocate(mach_task_self_, vm_address_t(bitPattern: info),
+                          vm_size_t(infoCount) * vm_size_t(MemoryLayout<integer_t>.size))
+        }
+        var busy: UInt64 = 0, total: UInt64 = 0
+        info.withMemoryRebound(to: processor_cpu_load_info.self, capacity: Int(cpuCount)) { ptr in
+            for i in 0..<Int(cpuCount) {
+                let t = ptr[i].cpu_ticks          // (user, system, idle, nice)
+                let active = UInt64(t.0) + UInt64(t.1) + UInt64(t.3)
+                busy += active
+                total += active + UInt64(t.2)
+            }
+        }
+        return (busy, total)
+    }
+
+    func memory() -> (used: UInt64, total: UInt64)? {
+        var stats = vm_statistics64_data_t()
+        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64_data_t>.size
+                                           / MemoryLayout<integer_t>.size)
+        let result = withUnsafeMutablePointer(to: &stats) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+            }
+        }
+        guard result == KERN_SUCCESS else { return nil }
+        let page = UInt64(vm_page_size)
+        let used = (UInt64(stats.active_count) + UInt64(stats.wire_count)
+                    + UInt64(stats.compressor_page_count)) * page
+        return (used, ProcessInfo.processInfo.physicalMemory)
+    }
+}
