@@ -1,4 +1,6 @@
 import Foundation
+import Darwin
+import Darwin.Mach
 
 /// A snapshot of system-wide vitals shown in the header bar.
 struct SystemVitals: Equatable, Sendable {
@@ -28,9 +30,6 @@ struct SystemVitals: Equatable, Sendable {
         return "\(m)m"
     }
 }
-
-import Darwin
-import Darwin.Mach
 
 /// Raw host CPU/memory reads, isolated behind a protocol so the sampler can be tested with a fake.
 protocol HostStatsProviding: Sendable {
