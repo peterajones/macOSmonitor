@@ -17,17 +17,21 @@ struct ContentView: View {
     var body: some View {
         @Bindable var model = model   // enables $model.selectedPID binding
 
-        ProcessTableView(
-            data: model.rows.filter { $0.matches(searchText) }.sorted(using: sortOrder),
-            selection: $model.selectedPID,
-            sortOrder: $sortOrder
-        )
-        .contextMenu(forSelectionType: pid_t.self) { ids in
-            let row = ids.first.flatMap { id in model.rows.first(where: { $0.id == id }) }
-            Button("Quit") { requestTermination(row, force: false) }
-                .disabled(row?.canTerminate != true)
-            Button("Force Quit") { requestTermination(row, force: true) }
-                .disabled(row?.canTerminate != true)
+        VStack(spacing: 0) {
+            SystemVitalsView(vitals: model.vitals)
+            Divider()
+            ProcessTableView(
+                data: model.rows.filter { $0.matches(searchText) }.sorted(using: sortOrder),
+                selection: $model.selectedPID,
+                sortOrder: $sortOrder
+            )
+            .contextMenu(forSelectionType: pid_t.self) { ids in
+                let row = ids.first.flatMap { id in model.rows.first(where: { $0.id == id }) }
+                Button("Quit") { requestTermination(row, force: false) }
+                    .disabled(row?.canTerminate != true)
+                Button("Force Quit") { requestTermination(row, force: true) }
+                    .disabled(row?.canTerminate != true)
+            }
         }
         .toolbar {
             ToolbarItemGroup {
