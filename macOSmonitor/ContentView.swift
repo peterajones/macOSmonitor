@@ -50,7 +50,7 @@ struct ContentView: View {
         .task { await model.run() }
         .onChange(of: model.selectedPID) { model.refreshDetails() }
         .inspector(isPresented: $showInspector) {
-            ProcessDetailView(row: selectedRow, details: model.selectedDetails)
+            ProcessDetailView(model: model)
                 .inspectorColumnWidth(min: 240, ideal: 300, max: 420)
         }
         .confirmationDialog(
@@ -80,10 +80,7 @@ struct ContentView: View {
 
     // MARK: - Selection helpers
 
-    private var selectedRow: ProcessInfoRow? {
-        guard let pid = model.selectedPID else { return nil }
-        return model.rows.first { $0.id == pid }
-    }
+    private var selectedRow: ProcessInfoRow? { model.selectedRow }
 
     private var confirmTitle: String {
         guard let item = pendingTermination else { return "" }

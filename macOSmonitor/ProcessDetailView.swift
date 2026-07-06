@@ -1,12 +1,14 @@
 import SwiftUI
 
 /// Inspector content: renders three states — no selection, denied, or full detail.
+/// Observes the model directly (rather than taking value snapshots) so it re-renders
+/// live as the model's rows/details update each tick — presentation content otherwise
+/// does not reliably re-evaluate on the presenting view's observable-state changes.
 struct ProcessDetailView: View {
-    let row: ProcessInfoRow?
-    let details: ProcessDetails?
+    let model: ProcessListModel
 
     var body: some View {
-        if let row {
+        if let row = model.selectedRow {
             Form {
                 Section("Process") {
                     LabeledContent("Name", value: row.name)
@@ -15,7 +17,7 @@ struct ProcessDetailView: View {
                     LabeledContent("CPU Time", value: row.cpuTimeText)
                     LabeledContent("Memory", value: row.memoryText)
                 }
-                if let details {
+                if let details = model.selectedDetails {
                     Section("Details") {
                         LabeledContent("User", value: details.user)
                         LabeledContent("Status", value: details.status)

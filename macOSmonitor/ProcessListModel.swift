@@ -49,4 +49,12 @@ final class ProcessListModel {
     func refreshDetails() {
         selectedDetails = selectedPID.flatMap { detailProvider.details(pid: $0) }
     }
+
+    /// The selected process's latest sampled row (nil when nothing is selected or it has
+    /// vanished). Reading observable `rows`/`selectedPID` here means a view that observes this
+    /// model re-renders as rows update each tick — the key to a live-updating inspector.
+    var selectedRow: ProcessInfoRow? {
+        guard let pid = selectedPID else { return nil }
+        return rows.first { $0.id == pid }
+    }
 }
