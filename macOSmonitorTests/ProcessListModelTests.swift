@@ -24,6 +24,12 @@ final class FakeDetailProvider: ProcessDetailProviding, @unchecked Sendable {
     func details(pid: pid_t) -> ProcessDetails? { lastPID = pid; return result }
 }
 
+final class FakePortProvider: ProcessPortProviding, @unchecked Sendable {
+    var result: [ProcessPort] = []
+    private(set) var lastPID: pid_t?
+    func ports(pid: pid_t) -> [ProcessPort] { lastPID = pid; return result }
+}
+
 @MainActor
 struct ProcessListModelTests {
     @Test func refreshOnceReplacesRowsFromSampler() async {
@@ -85,5 +91,21 @@ struct ProcessListModelTests {
 
         model.selectedPID = 999
         #expect(model.selectedRow == nil)              // selected pid no longer present
+    }
+
+    @Test func refreshSelectionPublishesPortsAndClearsWhenNoSelection() {
+        let fake = FakePortProvider()
+        fake.result = [ProcessPort(protocolName: "TCP", localAddress: "*", localPort: 80,
+                                   remoteAddress: nil, remotePort: nil, state: "LISTEN")]
+        let model = ProcessListModel(sampler: FakeSampler(), portProvider: fake)
+
+        model.selectedPID = 7
+        model.refreshSelection()
+        #expect(fake.lastPID == 7)
+        #expect(model.selectedPorts.count == 1)
+
+        model.selectedPID = nil
+        model.refreshSelection()
+        #expect(model.selectedPorts.isEmpty)
     }
 }

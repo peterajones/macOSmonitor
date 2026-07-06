@@ -10,26 +10,31 @@ final class ProcessListModel {
     var selectedPID: pid_t?
     /// Detail for the selected process; nil when nothing selected or access is denied.
     private(set) var selectedDetails: ProcessDetails?
+    /// Open network sockets for the selected process; empty when none selected or denied.
+    private(set) var selectedPorts: [ProcessPort] = []
 
     private let sampler: any ProcessSampling
     private let terminator: any ProcessTerminating
     private let detailProvider: any ProcessDetailProviding
+    private let portProvider: any ProcessPortProviding
     private let interval: Duration
 
     init(sampler: any ProcessSampling = ProcessSampler(),
          terminator: any ProcessTerminating = ProcessTerminator(),
          detailProvider: any ProcessDetailProviding = ProcInfo(),
+         portProvider: any ProcessPortProviding = ProcInfo(),
          interval: Duration = .seconds(1)) {
         self.sampler = sampler
         self.terminator = terminator
         self.detailProvider = detailProvider
+        self.portProvider = portProvider
         self.interval = interval
     }
 
     /// One sample → publish rows, then refresh the selected process's details (live cadence).
     func refreshOnce() async {
         rows = await sampler.sample()
-        refreshDetails()
+        refreshSelection()
     }
 
     /// Drives the dashboard. Owned by the view via `.task`, which cancels it on disappear.
@@ -48,6 +53,12 @@ final class ProcessListModel {
     /// Refresh `selectedDetails` for the current `selectedPID` (nil if none/denied).
     func refreshDetails() {
         selectedDetails = selectedPID.flatMap { detailProvider.details(pid: $0) }
+    }
+
+    /// Refresh all selection-scoped inspector data (details + ports) for `selectedPID`.
+    func refreshSelection() {
+        refreshDetails()
+        selectedPorts = selectedPID.map { portProvider.ports(pid: $0) } ?? []
     }
 
     /// The selected process's latest sampled row (nil when nothing is selected or it has
