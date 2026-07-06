@@ -68,4 +68,22 @@ struct ProcessListModelTests {
         model.refreshDetails()
         #expect(model.selectedDetails == nil)
     }
+
+    @Test func selectedRowResolvesFromRowsBySelectedPID() async {
+        let fake = FakeSampler()
+        fake.next = [
+            ProcessInfoRow(pid: 1, name: "a", cpuPercent: nil, memoryBytes: 100),
+            ProcessInfoRow(pid: 2, name: "b", cpuPercent: nil, memoryBytes: 200),
+        ]
+        let model = ProcessListModel(sampler: fake)
+        await model.refreshOnce()
+
+        #expect(model.selectedRow == nil)              // nothing selected
+
+        model.selectedPID = 2
+        #expect(model.selectedRow?.name == "b")        // resolves the matching row
+
+        model.selectedPID = 999
+        #expect(model.selectedRow == nil)              // selected pid no longer present
+    }
 }
