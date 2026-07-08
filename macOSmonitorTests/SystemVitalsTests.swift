@@ -4,10 +4,12 @@ import Testing
 
 struct SystemVitalsTests {
     private func make(cpu: Double = 0, used: UInt64 = 0, total: UInt64 = 0,
-                      cores: Int = 8, uptime: TimeInterval = 0) -> SystemVitals {
+                      cores: Int = 8, uptime: TimeInterval = 0,
+                      netIn: Double = 0, netOut: Double = 0) -> SystemVitals {
         SystemVitals(cpuUsagePercent: cpu, usedMemoryBytes: used, totalMemoryBytes: total,
                      coreCount: cores, activeCoreCount: cores, thermalState: "Nominal",
-                     lowPowerMode: false, uptime: uptime, osVersion: "macOS 26.5")
+                     lowPowerMode: false, uptime: uptime, osVersion: "macOS 26.5",
+                     networkInBytesPerSec: netIn, networkOutBytesPerSec: netOut)
     }
 
     @Test func cpuTextRoundsToWholePercent() {
@@ -20,5 +22,13 @@ struct SystemVitalsTests {
 
     @Test func uptimeTextDaysHours() {
         #expect(make(uptime: 3 * 86_400 + 4 * 3_600 + 30 * 60).uptimeText == "3d 4h")
+    }
+
+    @Test func networkTextFormatsAdaptiveUnits() {
+        #expect(make(netIn: 1_200_000, netOut: 340_000).networkText == "↓ 1.2 MB/s  ↑ 340 KB/s")
+    }
+
+    @Test func networkTextZero() {
+        #expect(make(netIn: 0, netOut: 0).networkText == "↓ 0 B/s  ↑ 0 B/s")
     }
 }

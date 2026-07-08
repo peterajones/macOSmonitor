@@ -13,6 +13,8 @@ struct SystemVitals: Equatable, Sendable {
     let lowPowerMode: Bool
     let uptime: TimeInterval
     let osVersion: String        // e.g. "macOS 26.5"
+    var networkInBytesPerSec: Double = 0
+    var networkOutBytesPerSec: Double = 0
 
     var cpuText: String { "\(Int(cpuUsagePercent.rounded()))%" }
 
@@ -28,6 +30,19 @@ struct SystemVitals: Equatable, Sendable {
         if d > 0 { return "\(d)d \(h)h" }
         if h > 0 { return "\(h)h \(m)m" }
         return "\(m)m"
+    }
+
+    /// e.g. "↓ 1.2 MB/s  ↑ 340 KB/s" (adaptive, decimal units).
+    var networkText: String {
+        "↓ \(SystemVitals.rate(networkInBytesPerSec))  ↑ \(SystemVitals.rate(networkOutBytesPerSec))"
+    }
+
+    private static func rate(_ bytesPerSec: Double) -> String {
+        let b = max(0, bytesPerSec)
+        if b < 1_000 { return String(format: "%.0f B/s", b) }
+        if b < 1_000_000 { return String(format: "%.0f KB/s", b / 1_000) }
+        if b < 1_000_000_000 { return String(format: "%.1f MB/s", b / 1_000_000) }
+        return String(format: "%.1f GB/s", b / 1_000_000_000)
     }
 }
 
