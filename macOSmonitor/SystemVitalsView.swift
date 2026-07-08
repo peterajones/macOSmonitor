@@ -8,6 +8,7 @@ struct SystemVitalsView: View {
         HStack(spacing: 0) {
             item("CPU", vitals?.cpuText)
             item("Memory", vitals?.memoryText)
+            item("Network", vitals?.networkText)
             item("Thermal", vitals?.thermalState)
             if vitals?.lowPowerMode == true { item("Power", "Low Power") }
             item("Uptime", vitals?.uptimeText)
