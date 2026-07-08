@@ -12,6 +12,7 @@ struct SystemVitalsView: View {
             item("Thermal", vitals?.thermalState)
             if vitals?.lowPowerMode == true { item("Power", "Low Power") }
             item("Uptime", vitals?.uptimeText)
+            if let battery = vitals?.battery { item("Battery", battery.displayText) }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
