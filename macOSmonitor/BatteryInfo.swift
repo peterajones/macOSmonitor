@@ -1,4 +1,5 @@
 import Foundation
+import IOKit.ps
 
 /// A snapshot of battery state for the vitals header.
 struct BatteryInfo: Equatable, Sendable {
@@ -29,4 +30,39 @@ struct BatteryInfo: Equatable, Sendable {
 /// Reads battery state, isolated behind a protocol so the sampler can use a fake.
 protocol BatteryStatsProviding: Sendable {
     func read() -> BatteryInfo?   // nil when no battery is present
+}
+
+struct BatteryStats: BatteryStatsProviding {
+    func read() -> BatteryInfo? {
+        let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
+        let sources = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue() as [CFTypeRef]
+        guard let first = sources.first,
+              let desc = IOPSGetPowerSourceDescription(snapshot, first)?.takeUnretainedValue()
+                as? [String: Any]
+        else { return nil }
+
+        let current = desc[kIOPSCurrentCapacityKey] as? Int ?? 0
+        let maxCapacity = desc[kIOPSMaxCapacityKey] as? Int ?? 100
+        let percent = maxCapacity > 0
+            ? Int((Double(current) / Double(maxCapacity) * 100).rounded())
+            : current
+        let isCharging = desc[kIOPSIsChargingKey] as? Bool ?? false
+        let powerState = desc[kIOPSPowerSourceStateKey] as? String
+
+        let state: BatteryInfo.State
+        let minutes: Int?
+        if isCharging {
+            state = .charging
+            let t = desc[kIOPSTimeToFullChargeKey] as? Int ?? -1
+            minutes = t > 0 ? t : nil
+        } else if powerState == kIOPSACPowerValue {
+            state = percent >= 100 ? .charged : .ac
+            minutes = nil
+        } else {
+            state = .discharging
+            let t = desc[kIOPSTimeToEmptyKey] as? Int ?? -1
+            minutes = t > 0 ? t : nil
+        }
+        return BatteryInfo(chargePercent: percent, state: state, timeRemainingMinutes: minutes)
+    }
 }
