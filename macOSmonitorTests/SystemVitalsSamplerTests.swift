@@ -9,6 +9,11 @@ final class FakeHostStats: HostStatsProviding, @unchecked Sendable {
     func memory() -> (used: UInt64, total: UInt64)? { mem }
 }
 
+final class FakeNetworkStats: NetworkStatsProviding, @unchecked Sendable {
+    var next: (received: UInt64, sent: UInt64)?
+    func counters() -> (received: UInt64, sent: UInt64)? { next }
+}
+
 struct SystemVitalsSamplerTests {
     @Test func firstTickZeroThenDeltaPercent() async {
         let fake = FakeHostStats()
@@ -31,6 +36,36 @@ struct SystemVitalsSamplerTests {
         let v = await sampler.sample()
         #expect(v.coreCount == ProcessInfo.processInfo.processorCount)
         #expect(v.osVersion.hasPrefix("macOS "))
+    }
+
+    @Test func networkRateFromDeltasOverClock() async {
+        let net = FakeNetworkStats()
+        var clock: UInt64 = 0
+        let sampler = SystemVitalsSampler(host: FakeHostStats(), network: net, now: { clock })
+
+        net.next = (received: 1_000, sent: 500)
+        let first = await sampler.sample()
+        #expect(first.networkInBytesPerSec == 0)          // no baseline
+
+        clock = 1_000_000_000                             // +1.0 s
+        net.next = (received: 1_001_000, sent: 340_500)   // +1_000_000 in / +340_000 out
+        let second = await sampler.sample()
+        #expect(second.networkInBytesPerSec == 1_000_000)
+        #expect(second.networkOutBytesPerSec == 340_000)
+    }
+
+    @Test func networkRateZeroOnCounterDrop() async {
+        let net = FakeNetworkStats()
+        var clock: UInt64 = 0
+        let sampler = SystemVitalsSampler(host: FakeHostStats(), network: net, now: { clock })
+
+        net.next = (received: 5_000, sent: 5_000)
+        _ = await sampler.sample()
+        clock = 1_000_000_000
+        net.next = (received: 1_000, sent: 1_000)          // counters dropped (wrap / iface reset)
+        let s = await sampler.sample()
+        #expect(s.networkInBytesPerSec == 0)
+        #expect(s.networkOutBytesPerSec == 0)
     }
 
     @Test func counterWraparoundDoesNotCrashAndYieldsZero() async {

@@ -9,10 +9,18 @@ protocol SystemVitalsSampling: Sendable {
 /// the syscalls run off the main thread; holds the previous CPU ticks for the delta.
 actor SystemVitalsSampler: SystemVitalsSampling {
     private let host: any HostStatsProviding
+    private let network: any NetworkStatsProviding
+    private let now: @Sendable () -> UInt64
     private var previousTicks: (busy: UInt64, total: UInt64)?
+    private var previousCounters: (received: UInt64, sent: UInt64)?
+    private var previousTime: UInt64?
 
-    init(host: any HostStatsProviding = HostStats()) {
+    init(host: any HostStatsProviding = HostStats(),
+         network: any NetworkStatsProviding = NetworkStats(),
+         now: @escaping @Sendable () -> UInt64 = { DispatchTime.now().uptimeNanoseconds }) {
         self.host = host
+        self.network = network
+        self.now = now
     }
 
     func sample() -> SystemVitals {
@@ -30,6 +38,25 @@ actor SystemVitalsSampler: SystemVitalsSampling {
             previousTicks = ticks
         }
 
+        var networkIn = 0.0
+        var networkOut = 0.0
+        if let counters = network.counters() {
+            let time = now()
+            if let previous = previousCounters, let previousT = previousTime, time > previousT {
+                let seconds = Double(time - previousT) / 1_000_000_000
+                if seconds > 0 {
+                    if counters.received >= previous.received {
+                        networkIn = Double(counters.received - previous.received) / seconds
+                    }
+                    if counters.sent >= previous.sent {
+                        networkOut = Double(counters.sent - previous.sent) / seconds
+                    }
+                }
+            }
+            previousCounters = counters
+            previousTime = time
+        }
+
         let info = ProcessInfo.processInfo
         let memory = host.memory()
         let version = info.operatingSystemVersion
@@ -43,7 +70,9 @@ actor SystemVitalsSampler: SystemVitalsSampling {
             thermalState: Self.thermalName(info.thermalState),
             lowPowerMode: info.isLowPowerModeEnabled,
             uptime: info.systemUptime,
-            osVersion: "macOS \(version.majorVersion).\(version.minorVersion)"
+            osVersion: "macOS \(version.majorVersion).\(version.minorVersion)",
+            networkInBytesPerSec: networkIn,
+            networkOutBytesPerSec: networkOut
         )
     }
 
