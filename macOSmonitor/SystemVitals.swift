@@ -15,6 +15,7 @@ struct SystemVitals: Equatable, Sendable {
     let osVersion: String        // e.g. "macOS 26.5"
     var networkInBytesPerSec: Double = 0
     var networkOutBytesPerSec: Double = 0
+    var battery: BatteryInfo? = nil
 
     var cpuText: String { "\(Int(cpuUsagePercent.rounded()))%" }
 

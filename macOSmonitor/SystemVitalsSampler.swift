@@ -10,6 +10,7 @@ protocol SystemVitalsSampling: Sendable {
 actor SystemVitalsSampler: SystemVitalsSampling {
     private let host: any HostStatsProviding
     private let network: any NetworkStatsProviding
+    private let battery: any BatteryStatsProviding
     private let now: @Sendable () -> UInt64
     private var previousTicks: (busy: UInt64, total: UInt64)?
     private var previousCounters: (received: UInt64, sent: UInt64)?
@@ -17,9 +18,11 @@ actor SystemVitalsSampler: SystemVitalsSampling {
 
     init(host: any HostStatsProviding = HostStats(),
          network: any NetworkStatsProviding = NetworkStats(),
+         battery: any BatteryStatsProviding = BatteryStats(),
          now: @escaping @Sendable () -> UInt64 = { DispatchTime.now().uptimeNanoseconds }) {
         self.host = host
         self.network = network
+        self.battery = battery
         self.now = now
     }
 
@@ -60,6 +63,7 @@ actor SystemVitalsSampler: SystemVitalsSampling {
         let info = ProcessInfo.processInfo
         let memory = host.memory()
         let version = info.operatingSystemVersion
+        let batteryInfo = battery.read()
 
         return SystemVitals(
             cpuUsagePercent: cpuPercent,
@@ -72,7 +76,8 @@ actor SystemVitalsSampler: SystemVitalsSampling {
             uptime: info.systemUptime,
             osVersion: "macOS \(version.majorVersion).\(version.minorVersion)",
             networkInBytesPerSec: networkIn,
-            networkOutBytesPerSec: networkOut
+            networkOutBytesPerSec: networkOut,
+            battery: batteryInfo
         )
     }
 

@@ -14,6 +14,11 @@ final class FakeNetworkStats: NetworkStatsProviding, @unchecked Sendable {
     func counters() -> (received: UInt64, sent: UInt64)? { next }
 }
 
+final class FakeBatteryStats: BatteryStatsProviding, @unchecked Sendable {
+    var info: BatteryInfo?
+    func read() -> BatteryInfo? { info }
+}
+
 struct SystemVitalsSamplerTests {
     @Test func firstTickZeroThenDeltaPercent() async {
         let fake = FakeHostStats()
@@ -66,6 +71,22 @@ struct SystemVitalsSamplerTests {
         let s = await sampler.sample()
         #expect(s.networkInBytesPerSec == 0)
         #expect(s.networkOutBytesPerSec == 0)
+    }
+
+    @Test func vitalsPublishBatteryWhenPresent() async {
+        let fake = FakeBatteryStats()
+        fake.info = BatteryInfo(chargePercent: 84, state: .discharging, timeRemainingMinutes: 197)
+        let sampler = SystemVitalsSampler(host: FakeHostStats(), network: FakeNetworkStats(),
+                                          battery: fake)
+        let v = await sampler.sample()
+        #expect(v.battery == fake.info)
+    }
+
+    @Test func vitalsHaveNilBatteryWhenAbsent() async {
+        let sampler = SystemVitalsSampler(host: FakeHostStats(), network: FakeNetworkStats(),
+                                          battery: FakeBatteryStats())   // info stays nil
+        let v = await sampler.sample()
+        #expect(v.battery == nil)
     }
 
     @Test func counterWraparoundDoesNotCrashAndYieldsZero() async {
