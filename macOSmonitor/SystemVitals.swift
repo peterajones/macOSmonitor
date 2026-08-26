@@ -16,6 +16,9 @@ struct SystemVitals: Equatable, Sendable {
     var networkInBytesPerSec: Double = 0
     var networkOutBytesPerSec: Double = 0
     var battery: BatteryInfo? = nil
+    var perCoreUsagePercent: [Double] = []
+    var diskReadBytesPerSec: Double = 0
+    var diskWriteBytesPerSec: Double = 0
 
     var cpuText: String { "\(Int(cpuUsagePercent.rounded()))%" }
 
