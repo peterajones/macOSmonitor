@@ -12,27 +12,22 @@ final class ProcessListModel {
     private(set) var selectedDetails: ProcessDetails?
     /// Open network sockets for the selected process; empty when none selected or denied.
     private(set) var selectedPorts: [ProcessPort] = []
-    /// Latest system-wide vitals for the header; nil until the first sample.
-    private(set) var vitals: SystemVitals?
 
     private let sampler: any ProcessSampling
     private let terminator: any ProcessTerminating
     private let detailProvider: any ProcessDetailProviding
     private let portProvider: any ProcessPortProviding
-    private let vitalsSampler: any SystemVitalsSampling
     private let interval: Duration
 
     init(sampler: any ProcessSampling = ProcessSampler(),
          terminator: any ProcessTerminating = ProcessTerminator(),
          detailProvider: any ProcessDetailProviding = ProcInfo(),
          portProvider: any ProcessPortProviding = ProcInfo(),
-         vitalsSampler: any SystemVitalsSampling = SystemVitalsSampler(),
          interval: Duration = .seconds(1)) {
         self.sampler = sampler
         self.terminator = terminator
         self.detailProvider = detailProvider
         self.portProvider = portProvider
-        self.vitalsSampler = vitalsSampler
         self.interval = interval
     }
 
@@ -40,7 +35,6 @@ final class ProcessListModel {
     func refreshOnce() async {
         rows = await sampler.sample()
         refreshSelection()
-        vitals = await vitalsSampler.sample()
     }
 
     /// Drives the dashboard. Owned by the view via `.task`, which cancels it on disappear.

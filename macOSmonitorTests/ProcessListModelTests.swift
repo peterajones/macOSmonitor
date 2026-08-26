@@ -30,14 +30,6 @@ final class FakePortProvider: ProcessPortProviding, @unchecked Sendable {
     func ports(pid: pid_t) -> [ProcessPort] { lastPID = pid; return result }
 }
 
-final class FakeVitalsSampler: SystemVitalsSampling, @unchecked Sendable {
-    var next = SystemVitals(cpuUsagePercent: 5, usedMemoryBytes: 1, totalMemoryBytes: 2,
-                            coreCount: 8, activeCoreCount: 8, thermalState: "Nominal",
-                            lowPowerMode: false, uptime: 60, osVersion: "macOS 26.5")
-    private(set) var callCount = 0
-    func sample() async -> SystemVitals { callCount += 1; return next }
-}
-
 @MainActor
 struct ProcessListModelTests {
     @Test func refreshOnceReplacesRowsFromSampler() async {
@@ -115,12 +107,5 @@ struct ProcessListModelTests {
         model.selectedPID = nil
         model.refreshSelection()
         #expect(model.selectedPorts.isEmpty)
-    }
-
-    @Test func refreshOncePublishesVitals() async {
-        let model = ProcessListModel(sampler: FakeSampler(), vitalsSampler: FakeVitalsSampler())
-        #expect(model.vitals == nil)
-        await model.refreshOnce()
-        #expect(model.vitals?.coreCount == 8)
     }
 }

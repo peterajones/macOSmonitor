@@ -7,6 +7,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var model = ProcessListModel()
+    @State private var vitalsModel = VitalsModel()
     @State private var sortOrder = [KeyPathComparator(\ProcessInfoRow.cpuSortKey, order: .reverse)]
     @State private var showInspector = true
     @State private var searchText = ""
@@ -18,7 +19,7 @@ struct ContentView: View {
         @Bindable var model = model   // enables $model.selectedPID binding
 
         VStack(spacing: 0) {
-            SystemVitalsView(vitals: model.vitals)
+            SystemVitalsView(vitals: vitalsModel.vitals)
             Divider()
             ProcessTableView(
                 data: model.rows.filter { $0.matches(searchText) }.sorted(using: sortOrder),
@@ -52,6 +53,7 @@ struct ContentView: View {
                     placement: .toolbar, prompt: "Filter by name or PID")
         .focusedSceneValue(\.searchPresented, $searchPresented)
         .task { await model.run() }
+        .task { await vitalsModel.run() }
         .onChange(of: model.selectedPID) { model.refreshSelection() }
         .inspector(isPresented: $showInspector) {
             ProcessDetailView(model: model)
