@@ -4,6 +4,7 @@ import SwiftUI
 /// a per-core grid, mirroring Task Manager's "Logical processors" toggle.
 struct CPUPanel: View {
     let model: VitalsModel
+    @Environment(\.theme) private var theme
     @State private var showsCores = false
 
     var body: some View {
@@ -18,14 +19,14 @@ struct CPUPanel: View {
 
             if showsCores {
                 CoreGrid(percentages: model.vitals?.perCoreUsagePercent ?? [],
-                         onColor: .accentColor,
-                         offColor: .gray.opacity(0.15))
+                         onColor: theme.meterOn,
+                         offColor: theme.meterOff)
             } else {
                 MetricGraph(values: model.history.cpu.values,
                             range: MetricScale.fixed(100),
-                            lineColor: .accentColor,
-                            fillColor: .accentColor.opacity(0.2),
-                            gridColor: .gray.opacity(0.3))
+                            lineColor: theme.graphLine,
+                            fillColor: theme.graphFill,
+                            gridColor: theme.gridLine)
                     .frame(minHeight: 180)
                 HStack {
                     Text("60s ago")
@@ -33,7 +34,7 @@ struct CPUPanel: View {
                     Text("now")
                 }
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.secondaryText)
             }
 
             HStack(spacing: 16) {
@@ -44,6 +45,8 @@ struct CPUPanel: View {
             Spacer()
         }
         .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(theme.panelBackground)
         .contextMenu {
             Button(showsCores ? "Overall Utilisation" : "Logical Processors") {
                 showsCores.toggle()
@@ -53,8 +56,8 @@ struct CPUPanel: View {
 
     private func stat(_ label: String, _ value: String?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.caption2).textCase(.uppercase).foregroundStyle(.secondary)
-            Text(value ?? "—").font(.callout).monospacedDigit()
+            Text(label).font(.caption2).textCase(.uppercase).foregroundStyle(theme.secondaryText)
+            Text(value ?? "—").font(.callout).monospacedDigit().foregroundStyle(theme.primaryText)
         }
     }
 }

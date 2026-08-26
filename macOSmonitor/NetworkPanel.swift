@@ -3,6 +3,7 @@ import SwiftUI
 /// The Network Performance panel: received and sent, sharing one autoscaled axis.
 struct NetworkPanel: View {
     let model: VitalsModel
+    @Environment(\.theme) private var theme
 
     private var range: ClosedRange<Double> {
         MetricScale.autoscaled([model.history.networkIn, model.history.networkOut])
@@ -21,13 +22,13 @@ struct NetworkPanel: View {
             ZStack {
                 MetricGraph(values: model.history.networkIn.values,
                             range: range,
-                            lineColor: .accentColor,
-                            fillColor: .accentColor.opacity(0.2),
-                            gridColor: .gray.opacity(0.3))
+                            lineColor: theme.graphLine,
+                            fillColor: theme.graphFill,
+                            gridColor: theme.gridLine)
                 MetricGraph(values: model.history.networkOut.values,
                             range: range,
-                            lineColor: .orange,
-                            fillColor: .orange.opacity(0.15),
+                            lineColor: theme.secondaryText,
+                            fillColor: theme.graphFill,
                             gridColor: .clear)
             }
             .frame(minHeight: 180)
@@ -35,15 +36,17 @@ struct NetworkPanel: View {
             HStack {
                 Text("scale: \(scaleLabel)")
                 Spacer()
-                Label("Received", systemImage: "arrow.down").foregroundStyle(Color.accentColor)
-                Label("Sent", systemImage: "arrow.up").foregroundStyle(.orange)
+                Label("Received", systemImage: "arrow.down").foregroundStyle(theme.graphLine)
+                Label("Sent", systemImage: "arrow.up").foregroundStyle(theme.secondaryText)
             }
             .font(.caption2)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(theme.secondaryText)
 
             Spacer()
         }
         .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(theme.panelBackground)
     }
 
     private var scaleLabel: String {

@@ -9,6 +9,9 @@ struct ContentView: View {
     @State private var model = ProcessListModel()
     @State private var vitalsModel = VitalsModel()
     @State private var surface: Surface? = .processes
+    @AppStorage("themeID") private var themeID: String = Theme.system.id
+
+    private var theme: Theme { Theme.named(themeID) }
 
     var body: some View {
         NavigationSplitView {
@@ -42,6 +45,21 @@ struct ContentView: View {
         }
         .frame(minWidth: 900, minHeight: 500)
         .navigationTitle("macOSmonitor")
+        .environment(\.theme, theme)
+        .toolbar {
+            ToolbarItem {
+                Menu {
+                    Picker("Theme", selection: $themeID) {
+                        ForEach(Theme.all) { option in
+                            Text(option.name).tag(option.id)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                } label: {
+                    Label("Theme", systemImage: "paintpalette")
+                }
+            }
+        }
         .task { await vitalsModel.run() }
     }
 

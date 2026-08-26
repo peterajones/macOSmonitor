@@ -3,6 +3,7 @@ import SwiftUI
 /// The Memory Performance panel: used memory over time against total installed.
 struct MemoryPanel: View {
     let model: VitalsModel
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -16,9 +17,9 @@ struct MemoryPanel: View {
 
             MetricGraph(values: model.history.memoryUsed.values,
                         range: MetricScale.fixed(Double(model.vitals?.totalMemoryBytes ?? 1)),
-                        lineColor: .accentColor,
-                        fillColor: .accentColor.opacity(0.2),
-                        gridColor: .gray.opacity(0.3))
+                        lineColor: theme.graphLine,
+                        fillColor: theme.graphFill,
+                        gridColor: theme.gridLine)
                 .frame(minHeight: 180)
 
             HStack {
@@ -27,10 +28,12 @@ struct MemoryPanel: View {
                 Text("now")
             }
             .font(.caption2)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(theme.secondaryText)
 
             Spacer()
         }
         .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(theme.panelBackground)
     }
 }

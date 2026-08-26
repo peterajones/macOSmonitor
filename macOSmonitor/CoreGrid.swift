@@ -6,6 +6,7 @@ struct CoreGrid: View {
     let percentages: [Double]
     let onColor: Color
     let offColor: Color
+    @Environment(\.theme) private var theme
 
     private let columns = [GridItem(.adaptive(minimum: 68), spacing: 8)]
 
@@ -25,7 +26,7 @@ struct CoreGrid: View {
                     Text("\(index)")
                         .font(.caption2)
                         .monospacedDigit()
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(theme.secondaryText)
                 }
             }
         }
