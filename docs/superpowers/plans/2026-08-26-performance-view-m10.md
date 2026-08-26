@@ -19,7 +19,11 @@
 - History capacity is **60** samples at **1 Hz**. Sample rate and render rate stay independent; no `TimelineView`.
 - Rate autoscale floor is **100_000** bytes/sec (100 KB/s).
 - Swift Testing (`@Test`, `#expect`), not XCTest. Fakes are `final class ... @unchecked Sendable`.
-- New files must be added to the `macOSmonitor` app target (or `macOSmonitorTests` test target) in `macOSmonitor.xcodeproj`.
+- **Do not edit `macOSmonitor.xcodeproj/project.pbxproj`, and never `git add` it.** The project
+  uses `PBXFileSystemSynchronizedRootGroup` (objectVersion 77), so a `.swift` file saved into
+  `macOSmonitor/` joins the app target automatically and one saved into `macOSmonitorTests/`
+  joins the test target automatically. Creating the file at the right path is the whole of
+  "adding it to the target". Hand-editing the pbxproj risks corrupting it for no benefit.
 
 ---
 
@@ -130,9 +134,10 @@ struct MetricHistory: Equatable, Sendable {
 }
 ```
 
-- [ ] **Step 4: Add the files to the Xcode targets**
+- [ ] **Step 4: Confirm the files landed at the right paths**
 
-`MetricHistory.swift` → `macOSmonitor` target. `MetricHistoryTests.swift` → `macOSmonitorTests` target.
+`macOSmonitor/MetricHistory.swift` and `macOSmonitorTests/MetricHistoryTests.swift`. Target
+membership follows from the directory — see Global Constraints. No pbxproj edit.
 
 - [ ] **Step 5: Run tests to verify they pass**
 
@@ -141,7 +146,7 @@ Run the test command from Step 2. Expected: PASS, 5 tests.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add macOSmonitor/MetricHistory.swift macOSmonitorTests/MetricHistoryTests.swift macOSmonitor.xcodeproj
+git add macOSmonitor/MetricHistory.swift macOSmonitorTests/MetricHistoryTests.swift
 git commit -m "feat: add MetricHistory sliding window"
 ```
 
@@ -283,16 +288,15 @@ struct VitalsHistory: Equatable, Sendable {
 }
 ```
 
-- [ ] **Step 5: Add files to targets and run tests**
+- [ ] **Step 5: Run tests**
 
-`VitalsHistory.swift` → app target, `VitalsHistoryTests.swift` → test target.
 Run the standard test command. Expected: PASS.
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add macOSmonitor/SystemVitals.swift macOSmonitor/VitalsHistory.swift \
-        macOSmonitorTests/VitalsHistoryTests.swift macOSmonitor.xcodeproj
+        macOSmonitorTests/VitalsHistoryTests.swift
 git commit -m "feat: add VitalsHistory and per-core/disk vitals fields"
 ```
 
@@ -397,14 +401,14 @@ enum MetricScale {
 }
 ```
 
-- [ ] **Step 4: Add files to targets and run tests**
+- [ ] **Step 4: Run tests to verify they pass**
 
 Run the standard test command. Expected: PASS, 6 tests.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add macOSmonitor/MetricScale.swift macOSmonitorTests/MetricScaleTests.swift macOSmonitor.xcodeproj
+git add macOSmonitor/MetricScale.swift macOSmonitorTests/MetricScaleTests.swift
 git commit -m "feat: add MetricScale with shared-axis autoscaling and noise floor"
 ```
 
@@ -789,7 +793,7 @@ Then run the build command and launch the app: the header must still show live v
 ```bash
 git add macOSmonitor/VitalsModel.swift macOSmonitorTests/VitalsModelTests.swift \
         macOSmonitor/ProcessListModel.swift macOSmonitorTests/ProcessListModelTests.swift \
-        macOSmonitor/ContentView.swift macOSmonitor.xcodeproj
+        macOSmonitor/ContentView.swift
 git commit -m "refactor: move vitals sampling from ProcessListModel into VitalsModel"
 ```
 
@@ -938,7 +942,7 @@ Run the standard test command. Expected: PASS, unchanged — this task moves vie
 
 ```bash
 git add macOSmonitor/Surface.swift macOSmonitor/ProcessesView.swift \
-        macOSmonitor/ContentView.swift macOSmonitor.xcodeproj
+        macOSmonitor/ContentView.swift
 git commit -m "refactor: split ContentView into a NavigationSplitView router and ProcessesView"
 ```
 
@@ -1139,7 +1143,7 @@ trace with a filled area and a grid.
 
 ```bash
 git add macOSmonitor/GraphGeometry.swift macOSmonitor/MetricGraph.swift \
-        macOSmonitorTests/GraphGeometryTests.swift macOSmonitor.xcodeproj
+        macOSmonitorTests/GraphGeometryTests.swift
 git commit -m "feat: add MetricGraph canvas and tested graph geometry"
 ```
 
@@ -1291,7 +1295,7 @@ Run the build command and launch the app. Select CPU in the sidebar. Confirm:
 
 ```bash
 git add macOSmonitor/CoreGrid.swift macOSmonitor/CPUPanel.swift \
-        macOSmonitor/ContentView.swift macOSmonitor.xcodeproj
+        macOSmonitor/ContentView.swift
 git commit -m "feat: add CPU panel with right-click per-core toggle"
 ```
 
@@ -1532,7 +1536,7 @@ Run the standard test command. Expected: PASS, unchanged.
 ```bash
 git add macOSmonitor/MemoryPanel.swift macOSmonitor/NetworkPanel.swift \
         macOSmonitor/SidebarMeter.swift macOSmonitor/ContentView.swift \
-        macOSmonitor/ProcessesView.swift macOSmonitor.xcodeproj
+        macOSmonitor/ProcessesView.swift
 git commit -m "feat: add Memory and Network panels with live sidebar meters"
 ```
 
@@ -1724,7 +1728,7 @@ clears 4.5:1 — do not lower the threshold. Record the measured ratio in the co
 - [ ] **Step 6: Commit**
 
 ```bash
-git add macOSmonitor/Theme.swift macOSmonitorTests/ThemeTests.swift macOSmonitor.xcodeproj
+git add macOSmonitor/Theme.swift macOSmonitorTests/ThemeTests.swift
 git commit -m "feat: add Theme with five palettes and WCAG contrast tests"
 ```
 
@@ -1824,7 +1828,7 @@ Run the standard test command. Expected: PASS, unchanged.
 ```bash
 git add macOSmonitor/ThemeEnvironment.swift macOSmonitor/ContentView.swift \
         macOSmonitor/CPUPanel.swift macOSmonitor/MemoryPanel.swift \
-        macOSmonitor/NetworkPanel.swift macOSmonitor/CoreGrid.swift macOSmonitor.xcodeproj
+        macOSmonitor/NetworkPanel.swift macOSmonitor/CoreGrid.swift
 git commit -m "feat: distribute themes via environment with AppStorage persistence"
 ```
 
@@ -1932,14 +1936,14 @@ struct DiskStats: DiskStatsProviding {
 }
 ```
 
-- [ ] **Step 4: Add files to targets and run tests**
+- [ ] **Step 4: Run tests to verify they pass**
 
 Run the standard test command. Expected: PASS, 3 tests.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add macOSmonitor/DiskStats.swift macOSmonitorTests/DiskStatsTests.swift macOSmonitor.xcodeproj
+git add macOSmonitor/DiskStats.swift macOSmonitorTests/DiskStatsTests.swift
 git commit -m "feat: add DiskStats IOKit block-storage shim"
 ```
 
@@ -2182,7 +2186,7 @@ Run the standard test command. Expected: PASS, all tests across all thirteen tas
 
 ```bash
 git add macOSmonitor/SystemVitalsSampler.swift macOSmonitorTests/SystemVitalsSamplerTests.swift \
-        macOSmonitor/DiskPanel.swift macOSmonitor/ContentView.swift macOSmonitor.xcodeproj
+        macOSmonitor/DiskPanel.swift macOSmonitor/ContentView.swift
 git commit -m "feat: add disk throughput rates and the Disk panel"
 ```
 
