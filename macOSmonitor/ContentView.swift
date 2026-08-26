@@ -26,7 +26,9 @@ struct ContentView: View {
             switch surface ?? .processes {
             case .processes:
                 ProcessesView(model: model, vitalsModel: vitalsModel)
-            case .cpu, .memory, .network, .disk:
+            case .cpu:
+                CPUPanel(model: vitalsModel)
+            case .memory, .network, .disk:
                 Text("Panel coming in the next task")
                     .foregroundStyle(.secondary)
             }
