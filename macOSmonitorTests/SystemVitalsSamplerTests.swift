@@ -3,9 +3,9 @@ import Testing
 @testable import macOSmonitor
 
 final class FakeHostStats: HostStatsProviding, @unchecked Sendable {
-    var ticks: (busy: UInt64, total: UInt64)?
+    var ticks: [CoreTicks]?
     var mem: (used: UInt64, total: UInt64)?
-    func cpuTicks() -> (busy: UInt64, total: UInt64)? { ticks }
+    func cpuTicks() -> [CoreTicks]? { ticks }
     func memory() -> (used: UInt64, total: UInt64)? { mem }
 }
 
@@ -23,7 +23,7 @@ struct SystemVitalsSamplerTests {
     @Test func firstTickZeroThenDeltaPercent() async {
         let fake = FakeHostStats()
         fake.mem = (used: 1_000, total: 2_000)
-        fake.ticks = (busy: 100, total: 1_000)
+        fake.ticks = [CoreTicks(busy: 100, total: 1_000)]
         let sampler = SystemVitalsSampler(host: fake)
 
         let first = await sampler.sample()
@@ -31,9 +31,58 @@ struct SystemVitalsSamplerTests {
         #expect(first.usedMemoryBytes == 1_000)
         #expect(first.totalMemoryBytes == 2_000)
 
-        fake.ticks = (busy: 150, total: 1_100)          // +50 busy / +100 total → 50%
+        fake.ticks = [CoreTicks(busy: 150, total: 1_100)]   // +50 busy / +100 total → 50%
         let second = await sampler.sample()
         #expect(second.cpuUsagePercent == 50)
+    }
+
+    @Test func perCorePercentagesAreReportedIndividually() async {
+        let fake = FakeHostStats()
+        fake.ticks = [CoreTicks(busy: 0, total: 100), CoreTicks(busy: 0, total: 100)]
+        let sampler = SystemVitalsSampler(host: fake)
+        _ = await sampler.sample()                        // establish baseline
+
+        fake.ticks = [CoreTicks(busy: 25, total: 200),    // +25/+100 → 25%
+                      CoreTicks(busy: 75, total: 200)]    // +75/+100 → 75%
+        let sample = await sampler.sample()
+        #expect(sample.perCoreUsagePercent == [25, 75])
+    }
+
+    @Test func aggregateIsTheSumOfCoreDeltasNotTheAverageOfPercents() async {
+        let fake = FakeHostStats()
+        fake.ticks = [CoreTicks(busy: 0, total: 0), CoreTicks(busy: 0, total: 0)]
+        let sampler = SystemVitalsSampler(host: fake)
+        _ = await sampler.sample()
+
+        // core 0 busy 30 of 100; core 1 busy 70 of 300 → total 100 busy of 400 = 25%
+        fake.ticks = [CoreTicks(busy: 30, total: 100), CoreTicks(busy: 70, total: 300)]
+        let sample = await sampler.sample()
+        #expect(sample.cpuUsagePercent == 25)
+    }
+
+    @Test func oneCoreWrappingDoesNotCorruptTheOthers() async {
+        let fake = FakeHostStats()
+        fake.ticks = [CoreTicks(busy: 100, total: 1_000), CoreTicks(busy: 0, total: 100)]
+        let sampler = SystemVitalsSampler(host: fake)
+        _ = await sampler.sample()
+
+        // core 0 wrapped (counters went backwards); core 1 advanced +50/+100 → 50%
+        fake.ticks = [CoreTicks(busy: 5, total: 20), CoreTicks(busy: 50, total: 200)]
+        let sample = await sampler.sample()
+        #expect(sample.perCoreUsagePercent == [0, 50])
+        #expect(sample.cpuUsagePercent == 50)     // wrapped core excluded from the aggregate
+    }
+
+    @Test func coreCountChangeResetsToBaseline() async {
+        let fake = FakeHostStats()
+        fake.ticks = [CoreTicks(busy: 0, total: 100)]
+        let sampler = SystemVitalsSampler(host: fake)
+        _ = await sampler.sample()
+
+        fake.ticks = [CoreTicks(busy: 50, total: 200), CoreTicks(busy: 50, total: 200)]
+        let sample = await sampler.sample()
+        #expect(sample.perCoreUsagePercent == [0, 0])
+        #expect(sample.cpuUsagePercent == 0)
     }
 
     @Test func vitalsReflectRealProcessInfoFacts() async {
@@ -92,11 +141,11 @@ struct SystemVitalsSamplerTests {
     @Test func counterWraparoundDoesNotCrashAndYieldsZero() async {
         // busy goes backwards while total advances (per-core 32-bit wrap): must not trap.
         let fake = FakeHostStats()
-        fake.ticks = (busy: 500, total: 1_000)
+        fake.ticks = [CoreTicks(busy: 500, total: 1_000)]
         let sampler = SystemVitalsSampler(host: fake)
         _ = await sampler.sample()                          // baseline
 
-        fake.ticks = (busy: 100, total: 1_100)              // busy dropped, total rose
+        fake.ticks = [CoreTicks(busy: 100, total: 1_100)]   // busy dropped, total rose
         let next = await sampler.sample()
         #expect(next.cpuUsagePercent == 0)                  // skipped safely, no crash
     }

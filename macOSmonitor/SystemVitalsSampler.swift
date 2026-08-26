@@ -12,7 +12,7 @@ actor SystemVitalsSampler: SystemVitalsSampling {
     private let network: any NetworkStatsProviding
     private let battery: any BatteryStatsProviding
     private let now: @Sendable () -> UInt64
-    private var previousTicks: (busy: UInt64, total: UInt64)?
+    private var previousCores: [CoreTicks]?
     private var previousCounters: (received: UInt64, sent: UInt64)?
     private var previousTime: UInt64?
 
@@ -28,17 +28,32 @@ actor SystemVitalsSampler: SystemVitalsSampling {
 
     func sample() -> SystemVitals {
         var cpuPercent = 0.0
-        if let ticks = host.cpuTicks() {
-            // Require both counters to be monotonic before subtracting: per-core 32-bit
+        var perCore: [Double] = []
+        if let cores = host.cpuTicks() {
+            // Require both counters to be monotonic per core before subtracting: 32-bit
             // tick counters can wrap on extreme uptime, and an unguarded UInt64 subtraction
-            // would trap. If either counter went backwards, skip this tick (0%).
-            if let previous = previousTicks,
-               ticks.total > previous.total, ticks.busy >= previous.busy {
-                let deltaBusy = ticks.busy - previous.busy
-                let deltaTotal = ticks.total - previous.total
-                if deltaTotal > 0 { cpuPercent = 100.0 * Double(deltaBusy) / Double(deltaTotal) }
+            // would trap. A wrapped core reports 0% and is excluded from the aggregate;
+            // its neighbours are unaffected.
+            if let previous = previousCores, previous.count == cores.count {
+                var totalBusy: UInt64 = 0
+                var totalAll: UInt64 = 0
+                for (current, prior) in zip(cores, previous) {
+                    guard current.total > prior.total, current.busy >= prior.busy else {
+                        perCore.append(0)
+                        continue
+                    }
+                    let deltaBusy = current.busy - prior.busy
+                    let deltaTotal = current.total - prior.total
+                    perCore.append(100.0 * Double(deltaBusy) / Double(deltaTotal))
+                    totalBusy += deltaBusy
+                    totalAll += deltaTotal
+                }
+                if totalAll > 0 { cpuPercent = 100.0 * Double(totalBusy) / Double(totalAll) }
+            } else {
+                // First tick, or the core count changed: no baseline to subtract from.
+                perCore = Array(repeating: 0, count: cores.count)
             }
-            previousTicks = ticks
+            previousCores = cores
         }
 
         var networkIn = 0.0
@@ -77,7 +92,8 @@ actor SystemVitalsSampler: SystemVitalsSampling {
             osVersion: "macOS \(version.majorVersion).\(version.minorVersion)",
             networkInBytesPerSec: networkIn,
             networkOutBytesPerSec: networkOut,
-            battery: batteryInfo
+            battery: batteryInfo,
+            perCoreUsagePercent: perCore
         )
     }
 

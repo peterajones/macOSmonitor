@@ -50,14 +50,23 @@ struct SystemVitals: Equatable, Sendable {
     }
 }
 
+/// One logical core's cumulative CPU tick counters.
+struct CoreTicks: Equatable, Sendable {
+    let busy: UInt64
+    let total: UInt64
+}
+
 /// Raw host CPU/memory reads, isolated behind a protocol so the sampler can be tested with a fake.
 protocol HostStatsProviding: Sendable {
-    func cpuTicks() -> (busy: UInt64, total: UInt64)?
+    /// One entry per logical core. The aggregate is derived by summing, so this is
+    /// deliberately the only CPU read — two calls per tick would be a wasted syscall
+    /// and two inconsistent snapshots.
+    func cpuTicks() -> [CoreTicks]?
     func memory() -> (used: UInt64, total: UInt64)?
 }
 
 struct HostStats: HostStatsProviding {
-    func cpuTicks() -> (busy: UInt64, total: UInt64)? {
+    func cpuTicks() -> [CoreTicks]? {
         var cpuCount: natural_t = 0
         var info: processor_info_array_t?
         var infoCount: mach_msg_type_number_t = 0
@@ -68,16 +77,16 @@ struct HostStats: HostStatsProviding {
             vm_deallocate(mach_task_self_, vm_address_t(bitPattern: info),
                           vm_size_t(infoCount) * vm_size_t(MemoryLayout<integer_t>.size))
         }
-        var busy: UInt64 = 0, total: UInt64 = 0
+        var cores: [CoreTicks] = []
+        cores.reserveCapacity(Int(cpuCount))
         info.withMemoryRebound(to: processor_cpu_load_info.self, capacity: Int(cpuCount)) { ptr in
             for i in 0..<Int(cpuCount) {
                 let t = ptr[i].cpu_ticks          // (user, system, idle, nice)
                 let active = UInt64(t.0) + UInt64(t.1) + UInt64(t.3)
-                busy += active
-                total += active + UInt64(t.2)
+                cores.append(CoreTicks(busy: active, total: active + UInt64(t.2)))
             }
         }
-        return (busy, total)
+        return cores
     }
 
     func memory() -> (used: UInt64, total: UInt64)? {

@@ -5,8 +5,11 @@ import Foundation
 struct HostStatsTests {
     let sut = HostStats()
 
-    @Test func cpuTicksAccumulate() {
-        #expect((sut.cpuTicks()?.total ?? 0) > 0)
+    @Test func cpuTicksReportEveryCore() {
+        let cores = sut.cpuTicks()
+        #expect(cores?.isEmpty == false)
+        #expect(cores?.count == ProcessInfo.processInfo.processorCount)
+        #expect((cores?.allSatisfy { $0.total > 0 }) == true)
     }
 
     @Test func memoryIsSaneAgainstPhysical() {
