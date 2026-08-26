@@ -17,7 +17,10 @@ struct ContentView: View {
                     .tag(Surface.processes)
                 Section("Performance") {
                     ForEach(Surface.performance) { item in
-                        Text(item.title).tag(item)
+                        SidebarMeter(title: item.title,
+                                     value: meterValue(item),
+                                     fraction: meterFraction(item))
+                            .tag(item)
                     }
                 }
             }
@@ -28,14 +31,49 @@ struct ContentView: View {
                 ProcessesView(model: model, vitalsModel: vitalsModel)
             case .cpu:
                 CPUPanel(model: vitalsModel)
-            case .memory, .network, .disk:
-                Text("Panel coming in the next task")
+            case .memory:
+                MemoryPanel(model: vitalsModel)
+            case .network:
+                NetworkPanel(model: vitalsModel)
+            case .disk:
+                Text("Panel coming in Task 13")
                     .foregroundStyle(.secondary)
             }
         }
         .frame(minWidth: 900, minHeight: 500)
         .navigationTitle("macOSmonitor")
         .task { await vitalsModel.run() }
+    }
+
+    private func meterValue(_ surface: Surface) -> String {
+        guard let vitals = vitalsModel.vitals else { return "—" }
+        switch surface {
+        case .cpu:     return vitals.cpuText
+        case .memory:  return vitals.memoryText
+        case .network: return vitals.networkText
+        case .disk:    return "—"          // wired in Task 13
+        case .processes: return ""
+        }
+    }
+
+    private func meterFraction(_ surface: Surface) -> Double {
+        guard let vitals = vitalsModel.vitals else { return 0 }
+        switch surface {
+        case .cpu:
+            return vitals.cpuUsagePercent / 100
+        case .memory:
+            return vitals.totalMemoryBytes > 0
+                ? Double(vitals.usedMemoryBytes) / Double(vitals.totalMemoryBytes)
+                : 0
+        case .network:
+            let range = MetricScale.autoscaled([vitalsModel.history.networkIn,
+                                                vitalsModel.history.networkOut])
+            return range.upperBound > 0
+                ? vitals.networkInBytesPerSec / range.upperBound
+                : 0
+        case .disk, .processes:
+            return 0                        // disk wired in Task 13
+        }
     }
 }
 
