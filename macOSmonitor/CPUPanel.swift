@@ -10,11 +10,12 @@ struct CPUPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text("CPU").font(.title2)
+                Text("CPU").font(.title2).foregroundStyle(theme.primaryText)
                 Spacer()
                 Text(model.vitals?.cpuText ?? "—")
                     .font(.title2)
                     .monospacedDigit()
+                    .foregroundStyle(theme.primaryText)
             }
 
             if showsCores {

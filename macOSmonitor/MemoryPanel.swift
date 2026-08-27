@@ -8,11 +8,12 @@ struct MemoryPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Memory").font(.title2)
+                Text("Memory").font(.title2).foregroundStyle(theme.primaryText)
                 Spacer()
                 Text(model.vitals?.memoryText ?? "—")
                     .font(.title2)
                     .monospacedDigit()
+                    .foregroundStyle(theme.primaryText)
             }
 
             MetricGraph(values: model.history.memoryUsed.values,

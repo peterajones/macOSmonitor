@@ -12,11 +12,12 @@ struct NetworkPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Network").font(.title2)
+                Text("Network").font(.title2).foregroundStyle(theme.primaryText)
                 Spacer()
                 Text(model.vitals?.networkText ?? "—")
                     .font(.title2)
                     .monospacedDigit()
+                    .foregroundStyle(theme.primaryText)
             }
 
             ZStack {
