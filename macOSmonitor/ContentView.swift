@@ -39,8 +39,7 @@ struct ContentView: View {
             case .network:
                 NetworkPanel(model: vitalsModel)
             case .disk:
-                Text("Panel coming in Task 13")
-                    .foregroundStyle(.secondary)
+                DiskPanel(model: vitalsModel)
             }
         }
         .frame(minWidth: 900, minHeight: 500)
@@ -69,7 +68,9 @@ struct ContentView: View {
         case .cpu:     return vitals.cpuText
         case .memory:  return vitals.memoryText
         case .network: return vitals.networkText
-        case .disk:    return "—"          // wired in Task 13
+        case .disk:
+            return String(format: "%.1f MB/s",
+                          (vitals.diskReadBytesPerSec + vitals.diskWriteBytesPerSec) / 1_000_000)
         case .processes: return ""
         }
     }
@@ -89,8 +90,14 @@ struct ContentView: View {
             return range.upperBound > 0
                 ? vitals.networkInBytesPerSec / range.upperBound
                 : 0
-        case .disk, .processes:
-            return 0                        // disk wired in Task 13
+        case .disk:
+            let range = MetricScale.autoscaled([vitalsModel.history.diskRead,
+                                                vitalsModel.history.diskWrite])
+            return range.upperBound > 0
+                ? (vitals.diskReadBytesPerSec + vitals.diskWriteBytesPerSec) / range.upperBound
+                : 0
+        case .processes:
+            return 0
         }
     }
 }

@@ -11,18 +11,23 @@ actor SystemVitalsSampler: SystemVitalsSampling {
     private let host: any HostStatsProviding
     private let network: any NetworkStatsProviding
     private let battery: any BatteryStatsProviding
+    private let disk: any DiskStatsProviding
     private let now: @Sendable () -> UInt64
     private var previousCores: [CoreTicks]?
     private var previousCounters: (received: UInt64, sent: UInt64)?
     private var previousTime: UInt64?
+    private var previousDiskCounters: (read: UInt64, written: UInt64)?
+    private var previousDiskTime: UInt64?
 
     init(host: any HostStatsProviding = HostStats(),
          network: any NetworkStatsProviding = NetworkStats(),
          battery: any BatteryStatsProviding = BatteryStats(),
+         disk: any DiskStatsProviding = DiskStats(),
          now: @escaping @Sendable () -> UInt64 = { DispatchTime.now().uptimeNanoseconds }) {
         self.host = host
         self.network = network
         self.battery = battery
+        self.disk = disk
         self.now = now
     }
 
@@ -75,6 +80,26 @@ actor SystemVitalsSampler: SystemVitalsSampling {
             previousTime = time
         }
 
+        var diskRead = 0.0
+        var diskWrite = 0.0
+        if let counters = disk.counters() {
+            let time = now()
+            if let previous = previousDiskCounters, let previousT = previousDiskTime,
+               time > previousT {
+                let seconds = Double(time - previousT) / 1_000_000_000
+                if seconds > 0 {
+                    if counters.read >= previous.read {
+                        diskRead = Double(counters.read - previous.read) / seconds
+                    }
+                    if counters.written >= previous.written {
+                        diskWrite = Double(counters.written - previous.written) / seconds
+                    }
+                }
+            }
+            previousDiskCounters = counters
+            previousDiskTime = time
+        }
+
         let info = ProcessInfo.processInfo
         let memory = host.memory()
         let version = info.operatingSystemVersion
@@ -93,7 +118,9 @@ actor SystemVitalsSampler: SystemVitalsSampling {
             networkInBytesPerSec: networkIn,
             networkOutBytesPerSec: networkOut,
             battery: batteryInfo,
-            perCoreUsagePercent: perCore
+            perCoreUsagePercent: perCore,
+            diskReadBytesPerSec: diskRead,
+            diskWriteBytesPerSec: diskWrite
         )
     }
 

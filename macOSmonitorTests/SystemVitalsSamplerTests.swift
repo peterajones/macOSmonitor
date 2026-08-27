@@ -19,6 +19,11 @@ final class FakeBatteryStats: BatteryStatsProviding, @unchecked Sendable {
     func read() -> BatteryInfo? { info }
 }
 
+final class FakeDiskStats: DiskStatsProviding, @unchecked Sendable {
+    var next: (read: UInt64, written: UInt64)?
+    func counters() -> (read: UInt64, written: UInt64)? { next }
+}
+
 struct SystemVitalsSamplerTests {
     @Test func firstTickZeroThenDeltaPercent() async {
         let fake = FakeHostStats()
@@ -136,6 +141,38 @@ struct SystemVitalsSamplerTests {
                                           battery: FakeBatteryStats())   // info stays nil
         let v = await sampler.sample()
         #expect(v.battery == nil)
+    }
+
+    @Test func diskRatesAreBytesPerSecondOverElapsedTime() async {
+        let disk = FakeDiskStats()
+        disk.next = (read: 1_000, written: 2_000)
+        var clock: UInt64 = 0
+        let sampler = SystemVitalsSampler(host: FakeHostStats(),
+                                          disk: disk,
+                                          now: { clock })
+
+        let first = await sampler.sample()
+        #expect(first.diskReadBytesPerSec == 0)        // no baseline yet
+
+        clock = 2_000_000_000                          // +2 seconds
+        disk.next = (read: 3_000, written: 2_500)      // +2000 read, +500 written
+        let second = await sampler.sample()
+        #expect(second.diskReadBytesPerSec == 1_000)   // 2000 bytes / 2s
+        #expect(second.diskWriteBytesPerSec == 250)
+    }
+
+    @Test func diskCounterGoingBackwardsYieldsZeroNotATrap() async {
+        let disk = FakeDiskStats()
+        disk.next = (read: 5_000, written: 5_000)
+        var clock: UInt64 = 0
+        let sampler = SystemVitalsSampler(host: FakeHostStats(), disk: disk, now: { clock })
+        _ = await sampler.sample()
+
+        clock = 1_000_000_000
+        disk.next = (read: 10, written: 10)            // counters reset
+        let sample = await sampler.sample()
+        #expect(sample.diskReadBytesPerSec == 0)
+        #expect(sample.diskWriteBytesPerSec == 0)
     }
 
     @Test func counterWraparoundDoesNotCrashAndYieldsZero() async {
