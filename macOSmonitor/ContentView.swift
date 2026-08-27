@@ -11,6 +11,16 @@ struct ContentView: View {
     @State private var surface: Surface? = .processes
     @AppStorage("themeID") private var themeID: String = Theme.system.id
 
+    // Owned here, not in ProcessesView: that view lives in one branch of the detail
+    // `switch` below, so it is destroyed and recreated on every surface change and
+    // any @State it declared would reset. Held here, these survive navigation.
+    @State private var sortOrder = [KeyPathComparator(\ProcessInfoRow.cpuSortKey, order: .reverse)]
+    @State private var showInspector = true
+    @State private var searchText = ""
+    @State private var searchPresented = false
+    @State private var pendingTermination: PendingTermination?
+    @State private var errorMessage: String?
+
     private var theme: Theme { Theme.named(themeID) }
 
     var body: some View {
@@ -31,7 +41,14 @@ struct ContentView: View {
         } detail: {
             switch surface ?? .processes {
             case .processes:
-                ProcessesView(model: model, vitalsModel: vitalsModel)
+                ProcessesView(model: model,
+                              vitalsModel: vitalsModel,
+                              sortOrder: $sortOrder,
+                              showInspector: $showInspector,
+                              searchText: $searchText,
+                              searchPresented: $searchPresented,
+                              pendingTermination: $pendingTermination,
+                              errorMessage: $errorMessage)
             case .cpu:
                 CPUPanel(model: vitalsModel)
             case .memory:
@@ -68,9 +85,7 @@ struct ContentView: View {
         case .cpu:     return vitals.cpuText
         case .memory:  return vitals.memoryText
         case .network: return vitals.networkText
-        case .disk:
-            return String(format: "%.1f MB/s",
-                          (vitals.diskReadBytesPerSec + vitals.diskWriteBytesPerSec) / 1_000_000)
+        case .disk:    return vitals.diskText
         case .processes: return ""
         }
     }

@@ -77,7 +77,10 @@ struct Theme: Identifiable, Equatable, Sendable {
             id: id, name: name,
             graphLine: accent.color,
             graphFill: accent.color.opacity(0.18),
-            gridLine: accent.color.opacity(0.18),
+            // Deliberately brighter than graphFill: the grid is drawn first and the
+            // fill paints over it, so an equal opacity makes the grid vanish under
+            // the trace and show only against bare background.
+            gridLine: accent.color.opacity(0.30),
             panelBackground: background.color,
             primaryText: accent.color,
             secondaryText: accent.color.opacity(0.65),

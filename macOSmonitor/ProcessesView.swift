@@ -5,16 +5,23 @@
 
 import SwiftUI
 
+/// The process table surface.
+///
+/// Its view state is owned by `ContentView` rather than held here: this view sits
+/// in one branch of the detail pane's `switch`, so navigating to a Performance
+/// panel changes structural identity and SwiftUI destroys any `@State` declared
+/// locally. Sort order, search text and inspector visibility would reset on every
+/// return trip. Bindings keep them alive for the window's lifetime.
 struct ProcessesView: View {
     let model: ProcessListModel
     let vitalsModel: VitalsModel
 
-    @State private var sortOrder = [KeyPathComparator(\ProcessInfoRow.cpuSortKey, order: .reverse)]
-    @State private var showInspector = true
-    @State private var searchText = ""
-    @State private var searchPresented = false
-    @State private var pendingTermination: PendingTermination?
-    @State private var errorMessage: String?
+    @Binding var sortOrder: [KeyPathComparator<ProcessInfoRow>]
+    @Binding var showInspector: Bool
+    @Binding var searchText: String
+    @Binding var searchPresented: Bool
+    @Binding var pendingTermination: PendingTermination?
+    @Binding var errorMessage: String?
 
     var body: some View {
         @Bindable var model = model   // enables $model.selectedPID binding
@@ -68,7 +75,7 @@ struct ProcessesView: View {
             Button("Cancel", role: .cancel) {}
         } message: { item in
             Text(item.force
-                 ? "Force-quitting “\(item.name)” ends it immediately; unsaved work is lost."
+                 ? "Force-quitting “\(item.name)” (PID \(item.pid)) ends it immediately; unsaved work is lost."
                  : "“\(item.name)” (PID \(item.pid)) will be asked to quit.")
         }
         .alert(
@@ -122,7 +129,8 @@ struct ProcessesView: View {
 }
 
 /// A pending Quit/Force-Quit awaiting confirmation.
-private struct PendingTermination: Identifiable {
+/// Not file-private: `ContentView` owns this state so it survives navigation.
+struct PendingTermination: Identifiable {
     let id = UUID()
     let pid: pid_t
     let name: String

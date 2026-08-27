@@ -47,18 +47,10 @@ struct DiskPanel: View {
     }
 
     private var throughputText: String {
-        guard let vitals = model.vitals else { return "—" }
-        return "R \(rate(vitals.diskReadBytesPerSec))  W \(rate(vitals.diskWriteBytesPerSec))"
+        model.vitals?.diskText ?? "—"
     }
 
     private var scaleLabel: String {
-        rate(range.upperBound)
-    }
-
-    private func rate(_ bytesPerSec: Double) -> String {
-        let b = max(0, bytesPerSec)
-        if b < 1_000 { return String(format: "%.0f B/s", b) }
-        if b < 1_000_000 { return String(format: "%.0f KB/s", b / 1_000) }
-        return String(format: "%.1f MB/s", b / 1_000_000)
+        SystemVitals.rate(range.upperBound)
     }
 }

@@ -41,7 +41,15 @@ struct SystemVitals: Equatable, Sendable {
         "↓ \(SystemVitals.rate(networkInBytesPerSec))  ↑ \(SystemVitals.rate(networkOutBytesPerSec))"
     }
 
-    private static func rate(_ bytesPerSec: Double) -> String {
+    /// e.g. "R 750 KB/s  W 0 B/s" (adaptive, decimal units).
+    var diskText: String {
+        "R \(SystemVitals.rate(diskReadBytesPerSec))  W \(SystemVitals.rate(diskWriteBytesPerSec))"
+    }
+
+    /// The one adaptive byte-rate formatter. Every rate string in the app routes
+    /// through here so a 340 KB/s reading never renders as "0.3 MB/s" in one
+    /// place and "340 KB/s" in another.
+    static func rate(_ bytesPerSec: Double) -> String {
         let b = max(0, bytesPerSec)
         if b < 1_000 { return String(format: "%.0f B/s", b) }
         if b < 1_000_000 { return String(format: "%.0f KB/s", b / 1_000) }

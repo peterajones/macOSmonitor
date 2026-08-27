@@ -51,8 +51,6 @@ struct NetworkPanel: View {
     }
 
     private var scaleLabel: String {
-        let bytes = range.upperBound
-        if bytes < 1_000_000 { return String(format: "%.0f KB/s", bytes / 1_000) }
-        return String(format: "%.1f MB/s", bytes / 1_000_000)
+        SystemVitals.rate(range.upperBound)
     }
 }
