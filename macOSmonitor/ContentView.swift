@@ -8,7 +8,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var model = ProcessListModel()
     @State private var vitalsModel = VitalsModel()
-    @State private var surface: Surface? = .processes
+    @State private var surface: Surface? = .summary
     @AppStorage("themeID") private var themeID: String = Theme.system.id
 
     // Owned here, not in ProcessesView: that view lives in one branch of the detail
@@ -26,6 +26,8 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: $surface) {
+                Label(Surface.summary.title, systemImage: "square.grid.2x2")
+                    .tag(Surface.summary)
                 Label(Surface.processes.title, systemImage: "list.bullet")
                     .tag(Surface.processes)
                 Section("Performance") {
@@ -42,7 +44,9 @@ struct ContentView: View {
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 260)
         } detail: {
-            switch surface ?? .processes {
+            switch surface ?? .summary {
+            case .summary:
+                SummaryView(model: model, vitalsModel: vitalsModel, surface: $surface)
             case .processes:
                 ProcessesView(model: model,
                               vitalsModel: vitalsModel,
@@ -95,7 +99,7 @@ struct ContentView: View {
         case .memory:  return vitals.memoryText
         case .network: return vitals.networkText
         case .disk:    return vitals.diskText
-        case .processes: return ""
+        case .summary, .processes: return ""
         }
     }
 
@@ -120,7 +124,7 @@ struct ContentView: View {
             return range.upperBound > 0
                 ? (vitals.diskReadBytesPerSec + vitals.diskWriteBytesPerSec) / range.upperBound
                 : 0
-        case .processes:
+        case .summary, .processes:
             return 0
         }
     }
