@@ -37,6 +37,11 @@ final class ProcessListModel {
         refreshSelection()
     }
 
+    /// The `limit` highest-CPU rows, for the Summary dashboard's process card.
+    func topByCPU(limit: Int) -> [ProcessInfoRow] {
+        ProcessInfoRow.topByCPU(rows, limit: limit)
+    }
+
     /// Drives the dashboard. Owned by the view via `.task`, which cancels it on disappear.
     func run() async {
         while !Task.isCancelled {

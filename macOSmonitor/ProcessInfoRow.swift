@@ -21,6 +21,19 @@ struct ProcessInfoRow: Identifiable, Hashable, Sendable {
     /// ownership check means we can also signal it. Drives enabling of Quit/Force Quit.
     var canTerminate: Bool { memoryBytes != nil }
 
+    /// The `limit` highest-CPU rows, descending, ties broken by ascending PID.
+    ///
+    /// The tiebreak matters: Swift's `sorted` is not guaranteed stable and many
+    /// processes sit at exactly 0%, so without it the list would reshuffle every tick.
+    /// `cpuSortKey` is -1 for unreadable processes, sinking them below 0% ones.
+    static func topByCPU(_ rows: [ProcessInfoRow], limit: Int) -> [ProcessInfoRow] {
+        guard limit > 0 else { return [] }
+        let sorted = rows.sorted {
+            $0.cpuSortKey == $1.cpuSortKey ? $0.pid < $1.pid : $0.cpuSortKey > $1.cpuSortKey
+        }
+        return Array(sorted.prefix(limit))
+    }
+
     /// Cumulative user+system CPU time, or "—" when unreadable. Adaptive format:
     /// M:SS.ss under an hour, H:MM:SS at/beyond an hour (matches Activity Monitor).
     var cpuTimeText: String {
