@@ -79,7 +79,13 @@ struct ContentView: View {
                 }
             }
         }
+        // Both sampling loops live here, on the always-alive split view. The vitals
+        // loop moved up in M10 so sidebar meters keep updating; the process loop
+        // moved up in M11 so the Summary's top-processes card has data on every
+        // surface. A loop owned by a view inside the detail `switch` would be
+        // cancelled on every navigation.
         .task { await vitalsModel.run() }
+        .task { await model.run() }
     }
 
     private func meterValue(_ surface: Surface) -> String {

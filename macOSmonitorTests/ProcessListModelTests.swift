@@ -108,4 +108,22 @@ struct ProcessListModelTests {
         model.refreshSelection()
         #expect(model.selectedPorts.isEmpty)
     }
+
+    /// The loop moved to ContentView in M11, so it now outlives ProcessesView.
+    /// Cancellation must still stop it, or navigating away would leak a sampler.
+    @Test func runStopsSamplingAfterCancellation() async {
+        let sampler = FakeSampler()
+        let model = ProcessListModel(sampler: sampler, interval: .milliseconds(10))
+
+        let task = Task { await model.run() }
+        try? await Task.sleep(for: .milliseconds(60))
+        task.cancel()
+        _ = await task.value
+
+        let countAtCancel = sampler.callCount
+        #expect(countAtCancel > 0, "loop should have sampled at least once before cancelling")
+
+        try? await Task.sleep(for: .milliseconds(80))
+        #expect(sampler.callCount == countAtCancel, "loop kept sampling after cancellation")
+    }
 }

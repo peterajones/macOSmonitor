@@ -58,7 +58,6 @@ struct ProcessesView: View {
         .searchable(text: $searchText, isPresented: $searchPresented,
                     placement: .toolbar, prompt: "Filter by name or PID")
         .focusedSceneValue(\.searchPresented, $searchPresented)
-        .task { await model.run() }
         .onChange(of: model.selectedPID) { model.refreshSelection() }
         .inspector(isPresented: $showInspector) {
             ProcessDetailView(model: model)
