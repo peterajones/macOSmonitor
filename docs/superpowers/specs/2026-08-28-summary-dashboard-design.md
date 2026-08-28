@@ -34,6 +34,10 @@ Explicitly out of scope, each requiring its own provider milestone:
 - The memory breakdown TMOG shows below its graph (Cached, Swap, Available)
 - Per-process GPU columns
 - Bug A (selection follows row position) — tracked separately; see `CLAUDE.md`
+- **Segmented LED meters — deferred to M12.** TMOG's signature stacked-segment look is
+  a milestone of its own. M11 ships a themed continuous `MeterBar`; M12 changes that one
+  component's rendering, with no call sites to touch. Splitting it keeps M11 to a single
+  new surface instead of a surface plus a visual overhaul.
 
 ## Decisions taken
 
@@ -42,7 +46,7 @@ Explicitly out of scope, each requiring its own provider milestone:
 | Purpose | The app's front page; default surface; cards navigate | Matches TMOG, where Summary is first in the sidebar |
 | Top processes | Include, sampled app-wide | It is the heart of TMOG's Summary; cost is measured, see below |
 | Layout | TMOG-faithful asymmetric grid | Most faithful to the target; densest |
-| Meters | Segmented LED, shared by Summary and sidebar | Signature VFD look; also fixes `SidebarMeter` ignoring the theme |
+| Meters | One themed `MeterBar` (continuous fill) shared by Summary and sidebar | Fixes `SidebarMeter` ignoring the theme, and establishes the seam that M12 swaps for segmented LEDs |
 | Colour | Per-metric hues in System; single accent in the four VFD themes | Real vacuum fluorescent displays use one phosphor, so monochrome VFD is authentic rather than a compromise |
 | Card/panel relationship | Compact cards composed from M10's pieces; panels untouched | Avoids duplicating logic; accepts duplicated layout *shape*, which is cheap to keep in sync |
 
@@ -58,10 +62,11 @@ how we learn what that abstraction should be. Revisit after this milestone ships
 
 ```text
 ┌─────┬────────────────────┬──────────────┐
-│ ▮▮▮ │ CPU Overview 18.7% │ Top Processes│
-│ ▮▮▮ │  ╱╲__╱╲_╱╲___      │ PID Name  CPU│
-│ CPU │                    │ 94249 Chrome │
-│     │ 12 logical procs   │ 48321 ghostty│
+│ ░ █ │ CPU Overview 18.7% │ Top Processes│
+│ ░ █ │  ╱╲__╱╲_╱╲___      │ PID Name  CPU│
+│ █ █ │                    │ 94249 Chrome │
+│ CPU │ 12 logical procs   │ 48321 ghostty│
+│ MEM │                    │              │
 ├─────┴────────────────────┴──────────────┤
 │ Memory              14.1 GB / 18 GB     │
 │  ╱‾╲__╱‾‾╲______╱‾╲___                  │
@@ -73,7 +78,7 @@ how we learn what that abstraction should be. Revisit after this milestone ships
 
 ### What the left strip contains
 
-**Two vertical segmented meters: CPU and Memory.** These are the only two metrics with a
+**Two vertical `MeterBar`s: CPU and Memory.** These are the only two metrics with a
 genuine 0–100% ceiling — CPU against 100%, memory against total installed. Disk and
 Network are deliberately excluded from the strip: their rates have no natural maximum, so
 a "percentage full" meter for them would be a fraction of a recent autoscaled peak, which
@@ -92,7 +97,7 @@ entirely when no battery exists (M9's rule), leaving three cards rather than a g
 
 | File | Responsibility |
 | --- | --- |
-| `SegmentMeter.swift` | Stacked-LED meter, vertical or horizontal. Takes fraction, segment count, on/off colours. Lit-segment arithmetic is a pure static function. |
+| `MeterBar.swift` | Themed utilisation meter, vertical or horizontal, continuous fill. Takes a fraction and on/off colours; clamping is a pure static function. **This is the component M12 re-renders as segmented LEDs** — its interface is chosen now so that milestone touches no call sites. |
 | `SummaryView.swift` | The surface. Owns the grid and nothing else; every cell is a card. |
 | `CPUOverviewCard.swift` | CPU trace, headline percent, logical-processor count. |
 | `MemoryCard.swift` | Full-width memory trace against total installed. |
@@ -108,17 +113,17 @@ entirely when no battery exists (M9's rule), leaving three cards rather than a g
 | File | Change |
 | --- | --- |
 | `Surface.swift` | New `.summary` case, listed first |
-| `ContentView.swift` | Route `.summary`; default to it; host `ProcessListModel`'s run loop; sidebar rows use `SegmentMeter` |
+| `ContentView.swift` | Route `.summary`; default to it; host `ProcessListModel`'s run loop |
 | `ProcessesView.swift` | Remove `.task { await model.run() }` — the loop moves up |
-| `SidebarMeter.swift` | Plain `Capsule` bar becomes a `SegmentMeter`; reads the theme instead of hardcoding `.secondary` / `.gray` / `.accentColor` |
+| `SidebarMeter.swift` | Inline `Capsule` bar becomes a `MeterBar`; reads the theme instead of hardcoding `.secondary` / `.gray` / `.accentColor` |
 | `Theme.swift` | Add `color(for: Metric) -> Color` |
 | `ProcessListModel.swift` | Add `topByCPU(limit:) -> [ProcessInfoRow]` |
 
 Reused unchanged from M10: `MetricGraph`, `MetricScale`, `GraphGeometry`,
 `MetricHistory`, `VitalsHistory`, `VitalsModel`, `SystemVitals`.
 
-`StatCard` and `SegmentMeter` are each used in more than one place from the first
-commit, so both are abstractions with evidence behind them.
+`StatCard` and `MeterBar` are each used in more than one place from the first commit, so
+both are abstractions with evidence behind them rather than speculative ones.
 
 ## Data flow
 
@@ -180,7 +185,7 @@ and on lifecycle code — rather than at whatever is cheapest to test.
 
 | # | Test | Covers |
 | --- | --- | --- |
-| 1 | `SegmentMeter.litCount(fraction:segments:)` | 0, 1.0, out-of-range clamping, rounding at a segment boundary |
+| 1 | `MeterBar.clampedFraction(_:)` | 0, 1.0, negative input, values above 1, NaN |
 | 2 | `ProcessListModel.topByCPU(limit:)` | Ordering, limit exceeding row count, empty input, ties |
 | 3 | `Theme.color(for:)` | Every fixed palette returns its accent for every metric; System's hues do not collide |
 | 4 | Per-metric hue contrast | Legibility against light **and** dark system backgrounds |
@@ -197,7 +202,8 @@ SwiftUI layout cannot be unit-tested. Verify by running:
 
 1. Summary is the surface shown on launch.
 2. Every card navigates to its corresponding Performance panel.
-3. Sidebar meters are segmented, themed, and still update live on every surface.
+3. Sidebar meters are themed (they follow the palette, not the system accent) and still
+   update live on every surface.
 4. All five themes are legible in system Light Mode **and** Dark Mode.
 5. The self-cost measurement above.
 
