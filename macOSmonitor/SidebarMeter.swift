@@ -12,16 +12,18 @@ struct SidebarMeter: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
+            // Both the title and the value keep their default semantic colours
+            // deliberately. This row sits on the SYSTEM sidebar background, not on
+            // theme.panelBackground, so a fixed dark palette's text colour renders
+            // dark-on-light here and is barely legible. Only the meter is themed —
+            // it is the element that actually sits on its own track.
             HStack {
-                // The title keeps its default colour deliberately: this is a sidebar
-                // list row, which must stay legible against the system sidebar
-                // background under every theme, including the fixed dark palettes.
                 Text(title)
                 Spacer()
                 Text(value)
                     .font(.caption)
                     .monospacedDigit()
-                    .foregroundStyle(theme.secondaryText)
+                    .foregroundStyle(.secondary)
             }
             MeterBar(fraction: fraction,
                      orientation: .horizontal,

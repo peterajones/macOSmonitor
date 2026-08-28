@@ -13,7 +13,10 @@ struct SummaryView: View {
     var body: some View {
         VStack(spacing: 12) {
             topRow
-            MemoryCard(model: vitalsModel)
+            Button { surface = .memory } label: {
+                MemoryCard(model: vitalsModel)
+            }
+            .buttonStyle(.plain)
             statRow
         }
         .padding(16)
@@ -24,9 +27,15 @@ struct SummaryView: View {
     private var topRow: some View {
         HStack(alignment: .top, spacing: 12) {
             meterStrip
-            CPUOverviewCard(model: vitalsModel)
-            TopProcessesCard(model: model)
-                .frame(width: 280)
+            Button { surface = .cpu } label: {
+                CPUOverviewCard(model: vitalsModel)
+            }
+            .buttonStyle(.plain)
+            Button { surface = .processes } label: {
+                TopProcessesCard(model: model)
+                    .frame(width: 280)
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -66,12 +75,18 @@ struct SummaryView: View {
 
     private var statRow: some View {
         HStack(spacing: 12) {
-            StatCard(title: "Disk",
-                     value: vitalsModel.vitals?.diskText ?? "—",
-                     metric: .disk)
-            StatCard(title: "Network",
-                     value: vitalsModel.vitals?.networkText ?? "—",
-                     metric: .network)
+            Button { surface = .disk } label: {
+                StatCard(title: "Disk",
+                         value: vitalsModel.vitals?.diskText ?? "—",
+                         metric: .disk)
+            }
+            .buttonStyle(.plain)
+            Button { surface = .network } label: {
+                StatCard(title: "Network",
+                         value: vitalsModel.vitals?.networkText ?? "—",
+                         metric: .network)
+            }
+            .buttonStyle(.plain)
             // Omitted entirely when there is no battery (M9's rule), so a desktop
             // Mac shows three cards rather than a gap.
             if let battery = vitalsModel.vitals?.battery {
