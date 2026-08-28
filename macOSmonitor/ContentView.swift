@@ -30,10 +30,13 @@ struct ContentView: View {
                     .tag(Surface.processes)
                 Section("Performance") {
                     ForEach(Surface.performance) { item in
-                        SidebarMeter(title: item.title,
-                                     value: meterValue(item),
-                                     fraction: meterFraction(item))
-                            .tag(item)
+                        if let metric = item.metric {
+                            SidebarMeter(title: item.title,
+                                         value: meterValue(item),
+                                         fraction: meterFraction(item),
+                                         metric: metric)
+                                .tag(item)
+                        }
                     }
                 }
             }

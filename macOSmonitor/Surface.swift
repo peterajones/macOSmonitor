@@ -21,6 +21,17 @@ enum Surface: String, CaseIterable, Hashable, Identifiable {
         }
     }
 
+    /// The metric this surface displays, if any. `.processes` shows a table, not a metric.
+    var metric: Metric? {
+        switch self {
+        case .cpu:       return .cpu
+        case .memory:    return .memory
+        case .network:   return .network
+        case .disk:      return .disk
+        case .processes: return nil
+        }
+    }
+
     /// The four Performance panels, in sidebar order.
     static let performance: [Surface] = [.cpu, .memory, .network, .disk]
 }
