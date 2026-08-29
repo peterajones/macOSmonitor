@@ -76,6 +76,13 @@ percentages whose sum differs from their average), not ones where several implem
   truth; if it compiles, the code is fine.
 - **Warning greps need a clean build.** `xcodebuild` only emits warnings for files it actually
   recompiled, so an incremental run silently under-reports. Don't claim "zero warnings" from one.
+- **Count test results with an UNANCHORED grep.** Parallel test output interleaves and can split a
+  result line, so `grep -cE '^Test case .* passed'` under-reports. Use `grep -c "' passed on '"`.
+- **`defaults` does NOT reach this app's preferences.** It resolves the domain to a container path
+  (`~/Library/Containers/ca.peter-jones.macOSmonitor/…`) while the app reads
+  `~/Library/Preferences/ca.peter-jones.macOSmonitor.plist`. To change a stored `@AppStorage` value
+  (e.g. `themeID`) from a script: quit the app, `killall cfprefsd`, THEN edit that plist with
+  PlistBuddy. Killing cfprefsd *after* editing flushes its stale cache back over your change.
 
 ## Known open issues
 
