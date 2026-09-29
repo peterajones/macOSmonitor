@@ -31,7 +31,6 @@ struct MetricGraph: View {
             context.fill(area, with: .color(fillColor))
             context.stroke(trace, with: .color(lineColor), lineWidth: 1.5)
         }
-        .drawingGroup()
     }
 
     private func drawGrid(in context: inout GraphicsContext, size: CGSize) {

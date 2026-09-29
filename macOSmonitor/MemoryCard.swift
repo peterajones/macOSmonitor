@@ -21,7 +21,7 @@ struct MemoryCard: View {
             MetricGraph(values: model.history.memoryUsed.values,
                         range: MetricScale.fixed(Double(model.vitals?.totalMemoryBytes ?? 1)),
                         lineColor: theme.color(for: .memory),
-                        fillColor: theme.graphFill,
+                        fillColor: theme.fillColor(for: .memory),
                         gridColor: theme.gridLine)
                 .frame(minHeight: 90)
         }

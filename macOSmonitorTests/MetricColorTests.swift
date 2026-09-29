@@ -1,5 +1,6 @@
 import Testing
 import AppKit
+import SwiftUI
 @testable import macOSmonitor
 
 @MainActor
@@ -26,6 +27,21 @@ struct MetricColorTests {
                 #expect(theme.color(for: metric) == theme.graphLine,
                         "\(theme.name) should be monochrome for \(metric)")
             }
+        }
+    }
+
+    @Test func graphFillMatchesTheLineItSitsUnder() {
+        // System: each metric's fill is its own hue, so CPU is not a green line
+        // over a blue (accent) fill.
+        for metric in Metric.allCases {
+            #expect(Theme.system.fillColor(for: metric)
+                    == Theme.system.color(for: metric).opacity(0.2),
+                    "System fill for \(metric) should be its own hue")
+        }
+        #expect(Theme.system.fillColor(for: .cpu) != Theme.system.graphFill)
+        // Fixed palettes are monochrome, so their existing fill is already right.
+        for theme in Theme.all where !theme.usesSystemColors {
+            #expect(theme.fillColor(for: .memory) == theme.graphFill)
         }
     }
 

@@ -21,7 +21,7 @@ struct CPUOverviewCard: View {
             MetricGraph(values: model.history.cpu.values,
                         range: MetricScale.fixed(100),
                         lineColor: theme.color(for: .cpu),
-                        fillColor: theme.graphFill,
+                        fillColor: theme.fillColor(for: .cpu),
                         gridColor: theme.gridLine)
                 .frame(minHeight: 120)
 
