@@ -29,13 +29,13 @@ struct ProcessSamplerTests {
     @Test func cpuPercentIsDeltaOverWallTime() async {
         let fake = FakeProcInfo()
         fake.pids = [42]; fake.names = [42: "worker"]
-        var clock: UInt64 = 0
-        let sampler = ProcessSampler(source: fake, now: { clock })
+        let clock = FakeClock()
+        let sampler = ProcessSampler(source: fake, now: { clock.now })
 
         fake.results = [42: ProcTaskSample(residentBytes: 1000, cpuTimeNanos: 0)]
         _ = await sampler.sample()                       // establish baseline at t=0
 
-        clock = 1_000_000_000                            // +1.0s wall
+        clock.now = 1_000_000_000                            // +1.0s wall
         fake.results = [42: ProcTaskSample(residentBytes: 1000, cpuTimeNanos: 500_000_000)] // +0.5s CPU
         let rows = await sampler.sample()
 

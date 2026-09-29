@@ -99,14 +99,14 @@ struct SystemVitalsSamplerTests {
 
     @Test func networkRateFromDeltasOverClock() async {
         let net = FakeNetworkStats()
-        var clock: UInt64 = 0
-        let sampler = SystemVitalsSampler(host: FakeHostStats(), network: net, now: { clock })
+        let clock = FakeClock()
+        let sampler = SystemVitalsSampler(host: FakeHostStats(), network: net, now: { clock.now })
 
         net.next = (received: 1_000, sent: 500)
         let first = await sampler.sample()
         #expect(first.networkInBytesPerSec == 0)          // no baseline
 
-        clock = 1_000_000_000                             // +1.0 s
+        clock.now = 1_000_000_000                             // +1.0 s
         net.next = (received: 1_001_000, sent: 340_500)   // +1_000_000 in / +340_000 out
         let second = await sampler.sample()
         #expect(second.networkInBytesPerSec == 1_000_000)
@@ -115,12 +115,12 @@ struct SystemVitalsSamplerTests {
 
     @Test func networkRateZeroOnCounterDrop() async {
         let net = FakeNetworkStats()
-        var clock: UInt64 = 0
-        let sampler = SystemVitalsSampler(host: FakeHostStats(), network: net, now: { clock })
+        let clock = FakeClock()
+        let sampler = SystemVitalsSampler(host: FakeHostStats(), network: net, now: { clock.now })
 
         net.next = (received: 5_000, sent: 5_000)
         _ = await sampler.sample()
-        clock = 1_000_000_000
+        clock.now = 1_000_000_000
         net.next = (received: 1_000, sent: 1_000)          // counters dropped (wrap / iface reset)
         let s = await sampler.sample()
         #expect(s.networkInBytesPerSec == 0)
@@ -146,15 +146,15 @@ struct SystemVitalsSamplerTests {
     @Test func diskRatesAreBytesPerSecondOverElapsedTime() async {
         let disk = FakeDiskStats()
         disk.next = (read: 1_000, written: 2_000)
-        var clock: UInt64 = 0
+        let clock = FakeClock()
         let sampler = SystemVitalsSampler(host: FakeHostStats(),
                                           disk: disk,
-                                          now: { clock })
+                                          now: { clock.now })
 
         let first = await sampler.sample()
         #expect(first.diskReadBytesPerSec == 0)        // no baseline yet
 
-        clock = 2_000_000_000                          // +2 seconds
+        clock.now = 2_000_000_000                          // +2 seconds
         disk.next = (read: 3_000, written: 2_500)      // +2000 read, +500 written
         let second = await sampler.sample()
         #expect(second.diskReadBytesPerSec == 1_000)   // 2000 bytes / 2s
@@ -164,11 +164,11 @@ struct SystemVitalsSamplerTests {
     @Test func diskCounterGoingBackwardsYieldsZeroNotATrap() async {
         let disk = FakeDiskStats()
         disk.next = (read: 5_000, written: 5_000)
-        var clock: UInt64 = 0
-        let sampler = SystemVitalsSampler(host: FakeHostStats(), disk: disk, now: { clock })
+        let clock = FakeClock()
+        let sampler = SystemVitalsSampler(host: FakeHostStats(), disk: disk, now: { clock.now })
         _ = await sampler.sample()
 
-        clock = 1_000_000_000
+        clock.now = 1_000_000_000
         disk.next = (read: 10, written: 10)            // counters reset
         let sample = await sampler.sample()
         #expect(sample.diskReadBytesPerSec == 0)

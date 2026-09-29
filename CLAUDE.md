@@ -92,8 +92,6 @@ percentages whose sum differs from their average), not ones where several implem
   new PID. `ProcessListModel.selectedRow` is correct — the defect is downstream in how SwiftUI
   `Table(selection:)` reconciles a live-resorting dataset. **Safety: acting on a stale highlight
   can Force-Quit the wrong process.** Full repro in the body of commit `b3224b9`. Unfixed.
-- Five sites use `var clock` captured by a `@Sendable` closure in tests, which warns
-  "this is an error in the Swift 6 language mode". Warnings today, a blocker later.
 
 ## Process
 
