@@ -1,7 +1,8 @@
 # macOSmonitor
 
-A macOS Activity-Monitor-style app: a live process table with an inspector, plus a
-Performance view (sidebar meters + CPU/Memory/Network/Disk history graphs, five themes).
+A macOS Activity-Monitor-style app: a Summary dashboard (the default surface), a live process
+table with an inspector, and a Performance view (sidebar meters + CPU/Memory/Network/Disk
+history graphs). Five themes; meters are segmented LED bars.
 Swift 6, SwiftUI, no third-party dependencies.
 
 ## Build and test
@@ -53,6 +54,12 @@ Doing that has caused a "frozen panel" regression here more than once.
 structural identity and SwiftUI destroys any `@State` declared locally. Sort order and search
 text would silently reset on every return trip. Keep them upstairs and pass bindings.
 
+**`MeterBar` is the one meter component** (Summary strip, `StatCard`, sidebar). It draws 20
+fixed segments of 5% each, lit by rounding *up* so any non-zero reading shows. Layout maths is
+pure and static (`litSegments`, `segmentRects`), like `GraphGeometry` — change the look there,
+not at call sites. Colour comes from `Theme.color(for:)`; the VFD themes stay monochrome, so no
+green/amber/red zones.
+
 ## Tests
 
 **Swift Testing only** — `import Testing`, `@Test`, `#expect`, `Issue.record`. Never XCTest.
@@ -60,6 +67,12 @@ text would silently reset on every return trip. Keep them upstairs and pass bind
 Fakes are `final class Fake…: @unchecked Sendable`. Prefer fixtures that *discriminate*: pick
 numbers where a plausible wrong implementation gives a visibly different answer (e.g. per-core
 percentages whose sum differs from their average), not ones where several implementations agree.
+
+**Floating-point fixtures must be computed, not literal, when the bug is float noise.** A literal
+`0.15 * 20` is exactly `3.0`, so a test built on it passes even with `MeterBar`'s rounding
+tolerance deleted; `3 * 0.05 * 20` is `3.0000000000000004` and does fail. Real inputs are
+computed (`percent / 100`, `used / total`), so fixtures should be too. Check a new test catches
+anything by deleting the code it guards and watching it fail.
 
 ## Gotchas that have cost real time
 
