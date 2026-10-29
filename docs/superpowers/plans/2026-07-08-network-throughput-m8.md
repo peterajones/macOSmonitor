@@ -1,5 +1,7 @@
 # Network Throughput (Milestone 8) Implementation Plan
 
+**Status:** FOLDED into TODO.md
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a live Network item to the vitals header showing aggregate ↓ received / ↑ sent throughput.

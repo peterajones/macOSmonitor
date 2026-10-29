@@ -1,5 +1,7 @@
 # Process Detail Inspector (Milestone 3) Implementation Plan
 
+**Status:** FOLDED into TODO.md
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a live-updating right-side inspector showing the selected process's path, PPID, start time, thread count, user, and status.

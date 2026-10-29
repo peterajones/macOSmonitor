@@ -1,5 +1,7 @@
 # Table Search/Filter (Milestone 4) Implementation Plan
 
+**Status:** FOLDED into TODO.md
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a `.searchable` toolbar field that live-filters the process table by name or PID, and fold in the deferred CPU%/Memory formatting cleanup.

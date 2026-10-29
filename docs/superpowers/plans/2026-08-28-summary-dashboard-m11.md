@@ -1,5 +1,7 @@
 # Summary Dashboard Implementation Plan (Milestone 11)
 
+**Status:** FOLDED into TODO.md
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a Summary dashboard as the app's default landing surface, composed entirely from data already sampled.

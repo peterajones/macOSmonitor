@@ -1,5 +1,7 @@
 # Ports (Open Sockets) Inspector (Milestone 6) Implementation Plan
 
+**Status:** FOLDED into TODO.md
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Show the selected process's open TCP/UDP sockets (protocol, local/remote addr:port, TCP state) in a live-updating Ports section of the inspector.

@@ -1,5 +1,7 @@
 # Battery Vital (Milestone 9) Implementation Plan
 
+**Status:** FOLDED into TODO.md
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a Battery item (charge % + state + time remaining) to the vitals header, shown only when a battery is present.

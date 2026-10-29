@@ -1,5 +1,7 @@
 # Process Termination (Milestone 2) Implementation Plan
 
+**Status:** FOLDED into TODO.md
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let the user Quit (SIGTERM) or Force Quit (SIGKILL) a selected process from a context menu and toolbar, each guarded by a confirmation dialog, with un-killable rows disabled and failures shown as alerts.

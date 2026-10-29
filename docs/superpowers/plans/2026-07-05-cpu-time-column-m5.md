@@ -1,5 +1,7 @@
 # CPU Time Column (Milestone 5) Implementation Plan
 
+**Status:** FOLDED into TODO.md
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a sortable CPU Time column (cumulative user+system CPU time) after CPU %, echoed in the inspector, using data already fetched.
