@@ -108,7 +108,7 @@ anything by deleting the code it guards and watching it fail.
 
 ## Process
 
-Keep `TODO.md` current: remove an item when it is finished, and add any unfinished work you discover.
+Keep `TODO.md` current: tick an item (`- [x]`) when it is finished — don't delete it; the review harness records it and removes the line — and add any unfinished work you discover.
 
 Specs and plans live in `docs/superpowers/{specs,plans}/`. They are dated records of what was
 approved — read them for context, but don't rewrite them after the fact to match what shipped.
