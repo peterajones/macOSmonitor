@@ -9,19 +9,23 @@ protocol ProcessSampling: Sendable {
 /// CPU time against the previous tick. Runs off the main thread (plain actor).
 actor ProcessSampler: ProcessSampling {
     private let source: any ProcInfoProviding
+    private let apps: any RegularAppProviding
     private let now: @Sendable () -> UInt64
     private var previousCPU: [pid_t: UInt64] = [:]   // pid -> cpuTimeNanos last tick
     private var lastWallNanos: UInt64?
 
     init(source: any ProcInfoProviding = ProcInfo(),
+         apps: any RegularAppProviding = RegularApps(),
          now: @escaping @Sendable () -> UInt64 = { DispatchTime.now().uptimeNanoseconds }) {
         self.source = source
+        self.apps = apps
         self.now = now
     }
 
     func sample() -> [ProcessInfoRow] {
         let wall = now()
         let wallDelta = lastWallNanos.map { wall &- $0 } ?? 0
+        let appPIDs = apps.regularAppPIDs()
 
         var rows: [ProcessInfoRow] = []
         var currentCPU: [pid_t: UInt64] = [:]
@@ -30,7 +34,8 @@ actor ProcessSampler: ProcessSampling {
             let name = source.name(pid: pid)
             guard let s = source.sample(pid: pid) else {
                 // Denied (EPERM) or vanished: name + pid only (Decision A).
-                rows.append(ProcessInfoRow(pid: pid, name: name, cpuPercent: nil, memoryBytes: nil))
+                rows.append(ProcessInfoRow(pid: pid, name: name, cpuPercent: nil, memoryBytes: nil,
+                                           isApplication: appPIDs.contains(pid)))
                 continue
             }
             currentCPU[pid] = s.cpuTimeNanos
@@ -42,7 +47,8 @@ actor ProcessSampler: ProcessSampling {
             }
             rows.append(ProcessInfoRow(pid: pid, name: name,
                                        cpuPercent: cpuPercent, memoryBytes: s.residentBytes,
-                                       cpuTimeNanos: s.cpuTimeNanos))
+                                       cpuTimeNanos: s.cpuTimeNanos,
+                                       isApplication: appPIDs.contains(pid)))
         }
 
         previousCPU = currentCPU

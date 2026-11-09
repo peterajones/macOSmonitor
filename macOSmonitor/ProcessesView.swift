@@ -30,7 +30,9 @@ struct ProcessesView: View {
             SystemVitalsView(vitals: vitalsModel.vitals)
             Divider()
             ProcessTableView(
-                data: model.rows.filter { $0.matches(searchText) }.sorted(using: sortOrder),
+                sections: ProcessTableSection.make(rows: model.rows,
+                                                   searchText: searchText,
+                                                   sortOrder: sortOrder),
                 selection: $model.selectedPID,
                 sortOrder: $sortOrder
             )
@@ -139,12 +141,12 @@ struct PendingTermination: Identifiable {
 // MARK: - Table Helper View
 
 private struct ProcessTableView: View {
-    let data: [ProcessInfoRow]
+    let sections: [ProcessTableSection]
     @Binding var selection: pid_t?
     @Binding var sortOrder: [KeyPathComparator<ProcessInfoRow>]
 
     var body: some View {
-        Table(data, selection: $selection, sortOrder: $sortOrder) {
+        Table(of: ProcessInfoRow.self, selection: $selection, sortOrder: $sortOrder) {
             TableColumn("Name", value: \.name)
             TableColumn("PID", value: \.pid) { row in
                 Text(String(row.pid))
@@ -160,6 +162,14 @@ private struct ProcessTableView: View {
             TableColumn("Memory", value: \.memSortKey) { row in
                 Text(row.memoryText)
                     .monospacedDigit()
+            }
+        } rows: {
+            ForEach(sections) { section in
+                Section(section.title) {
+                    ForEach(section.rows) { row in
+                        TableRow(row)
+                    }
+                }
             }
         }
     }

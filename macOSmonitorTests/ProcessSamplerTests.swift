@@ -13,7 +13,36 @@ final class FakeProcInfo: ProcInfoProviding, @unchecked Sendable {
     func name(pid: pid_t) -> String { names[pid] ?? "(pid \(pid))" }
 }
 
+final class FakeRegularApps: RegularAppProviding, @unchecked Sendable {
+    var pids: Set<pid_t> = []
+    func regularAppPIDs() -> Set<pid_t> { pids }
+}
+
 struct ProcessSamplerTests {
+    @Test func onlyRegularAppPIDsAreMarkedAsApplications() async {
+        let fake = FakeProcInfo()
+        fake.pids = [42, 43]; fake.names = [42: "app", 43: "daemon"]
+        fake.results = [42: ProcTaskSample(residentBytes: 1, cpuTimeNanos: 0),
+                        43: ProcTaskSample(residentBytes: 1, cpuTimeNanos: 0)]
+        let apps = FakeRegularApps()
+        apps.pids = [42]
+        let sampler = ProcessSampler(source: fake, apps: apps, now: { 0 })
+
+        let rows = await sampler.sample()
+        #expect(rows.map(\.isApplication) == [true, false])
+    }
+
+    @Test func deniedRegularAppIsStillMarkedAsApplication() async {
+        let fake = FakeProcInfo()
+        fake.pids = [7]; fake.names = [7: "other-user-app"]
+        let apps = FakeRegularApps()
+        apps.pids = [7]
+        let sampler = ProcessSampler(source: fake, apps: apps, now: { 0 })
+
+        let rows = await sampler.sample()
+        #expect(rows.first?.isApplication == true)
+    }
+
     @Test func firstTickHasNoCPUBaseline() async {
         let fake = FakeProcInfo()
         fake.pids = [42]; fake.names = [42: "worker"]

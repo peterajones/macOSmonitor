@@ -10,6 +10,7 @@ struct ProcessInfoRow: Identifiable, Hashable, Sendable {
     var cpuPercent: Double?
     var memoryBytes: UInt64?
     var cpuTimeNanos: UInt64? = nil
+    var isApplication: Bool = false
 
     var id: pid_t { pid }
 
