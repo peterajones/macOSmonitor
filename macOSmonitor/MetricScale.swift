@@ -12,6 +12,18 @@ enum MetricScale {
         0...max(upper, 1)
     }
 
+    /// Zooms a bounded metric to its recent data, within 0...ceiling. `minimumSpan`
+    /// plays the same role as `rateFloor`: it stops tiny wobbles filling the graph.
+    static func zoomed(_ values: [Double], ceiling: Double, minimumSpan: Double) -> ClosedRange<Double> {
+        guard let low = values.min(), let high = values.max() else { return fixed(ceiling) }
+        let span = max(high - low, minimumSpan)
+        let middle = (low + high) / 2
+        let reach = span / 2 + span * 0.1
+        let lower = max(middle - reach, 0)
+        let upper = min(middle + reach, ceiling)
+        return lower < upper ? lower...upper : fixed(ceiling)
+    }
+
     /// An unbounded rate metric. All supplied series share one axis so they stay
     /// visually comparable; the floor keeps idle noise flat.
     static func autoscaled(_ series: [MetricHistory],

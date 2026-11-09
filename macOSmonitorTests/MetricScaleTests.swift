@@ -42,4 +42,24 @@ struct MetricScaleTests {
         let range = MetricScale.autoscaled([MetricHistory(capacity: 60)])
         #expect(range.upperBound == MetricScale.rateFloor)
     }
+
+    @Test func zoomFitsTheDataWithPadding() {
+        #expect(MetricScale.zoomed([20, 10, 15], ceiling: 100, minimumSpan: 1) == 9...21)
+    }
+
+    @Test func zoomKeepsAMinimumSpanSoFlatDataStaysFlat() {
+        #expect(MetricScale.zoomed([50, 50], ceiling: 100, minimumSpan: 10) == 44...56)
+    }
+
+    @Test func zoomStaysWithinZeroAndTheCeiling() {
+        #expect(MetricScale.zoomed([1, 2], ceiling: 3, minimumSpan: 10) == 0...3)
+    }
+
+    @Test func zoomWithNoDataShowsTheWholeRange() {
+        #expect(MetricScale.zoomed([], ceiling: 100, minimumSpan: 10) == 0...100)
+    }
+
+    @Test func zoomOfDataAboveTheCeilingFallsBackToTheWholeRange() {
+        #expect(MetricScale.zoomed([200, 300], ceiling: 100, minimumSpan: 1) == 0...100)
+    }
 }

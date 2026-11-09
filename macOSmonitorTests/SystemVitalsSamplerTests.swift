@@ -4,9 +4,13 @@ import Testing
 
 final class FakeHostStats: HostStatsProviding, @unchecked Sendable {
     var ticks: [CoreTicks]?
-    var mem: (used: UInt64, total: UInt64)?
+    var mem: MemoryReading?
+    var swap: SwapUsage?
+    var pressureLevel: Int32?
     func cpuTicks() -> [CoreTicks]? { ticks }
-    func memory() -> (used: UInt64, total: UInt64)? { mem }
+    func memory() -> MemoryReading? { mem }
+    func swapUsage() -> SwapUsage? { swap }
+    func memoryPressureLevel() -> Int32? { pressureLevel }
 }
 
 final class FakeNetworkStats: NetworkStatsProviding, @unchecked Sendable {
@@ -25,9 +29,56 @@ final class FakeDiskStats: DiskStatsProviding, @unchecked Sendable {
 }
 
 struct SystemVitalsSamplerTests {
+    @Test func memoryBreakdownComesFromTheHostRead() async {
+        let fake = FakeHostStats()
+        fake.mem = MemoryReading(used: 9_000_000_000, total: 32_000_000_000, cached: 4_000_000_000)
+        fake.swap = SwapUsage(used: 1_000, total: 3_000)
+        let vitals = await SystemVitalsSampler(host: fake).sample()
+
+        #expect(vitals.memoryReading?.cached == 4_000_000_000)
+        #expect(vitals.availableMemoryBytes == 23_000_000_000)
+        #expect(vitals.swap == SwapUsage(used: 1_000, total: 3_000))
+    }
+
+    @Test func availableMemoryStopsAtZeroWhenUsedExceedsTotal() async {
+        let fake = FakeHostStats()
+        fake.mem = MemoryReading(used: 5_000, total: 2_000)
+        let vitals = await SystemVitalsSampler(host: fake).sample()
+
+        #expect(vitals.availableMemoryBytes == 0)
+    }
+
+    @Test func failedMemoryReadLeavesBreakdownUnknownRatherThanZero() async {
+        let vitals = await SystemVitalsSampler(host: FakeHostStats()).sample()
+
+        #expect(vitals.memoryReading == nil)
+        #expect(vitals.availableMemoryBytes == nil)
+        #expect(vitals.swap == nil)
+        #expect(vitals.memoryPressure == nil)
+    }
+
+    @Test(arguments: [(Int32(1), MemoryPressure.normal),
+                      (Int32(2), MemoryPressure.warning),
+                      (Int32(4), MemoryPressure.critical)])
+    func kernelPressureLevelsMapToNames(level: Int32, expected: MemoryPressure) async {
+        let fake = FakeHostStats()
+        fake.pressureLevel = level
+        let vitals = await SystemVitalsSampler(host: fake).sample()
+
+        #expect(vitals.memoryPressure == expected)
+    }
+
+    @Test func unrecognisedPressureLevelIsUnknown() async {
+        let fake = FakeHostStats()
+        fake.pressureLevel = 3
+        let vitals = await SystemVitalsSampler(host: fake).sample()
+
+        #expect(vitals.memoryPressure == nil)
+    }
+
     @Test func firstTickZeroThenDeltaPercent() async {
         let fake = FakeHostStats()
-        fake.mem = (used: 1_000, total: 2_000)
+        fake.mem = MemoryReading(used: 1_000, total: 2_000)
         fake.ticks = [CoreTicks(busy: 100, total: 1_000)]
         let sampler = SystemVitalsSampler(host: fake)
 

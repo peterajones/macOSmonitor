@@ -3,7 +3,7 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [ ] Add a memory pressure gauge and the Cached/Swap/Available memory breakdown (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
+- [x] Add a memory pressure gauge and the Cached/Swap/Available memory breakdown (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
 - [ ] Break network throughput down per interface (Wi-Fi vs Ethernet) (from: docs/superpowers/specs/2026-07-08-network-throughput-design.md)
 - [ ] Show command-line arguments (KERN_PROCARGS2) in the inspector (from: docs/superpowers/specs/2026-07-02-process-detail-inspector-design.md)
 

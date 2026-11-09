@@ -16,8 +16,61 @@ struct SystemVitalsTests {
         #expect(make(cpu: 34.4).cpuText == "34%")
     }
 
-    @Test func memoryTextIsDecimalGB() {
-        #expect(make(used: 12_300_000_000, total: 32_000_000_000).memoryText == "12.3 / 32 GB")
+    @Test func memoryBreakdownTextIsBinaryGB() {
+        var v = make(used: 16_106_127_360, total: 19_327_352_832)
+        v.memoryReading = MemoryReading(used: 16_106_127_360, total: 19_327_352_832,
+                                        cached: 4_617_089_843, wired: 3_758_096_384,
+                                        compressed: 6_549_825_126, app: 5_690_831_667)
+        v.swap = SwapUsage(used: 24_588_687_770, total: 25_769_803_776)
+        v.memoryPressure = .warning
+
+        #expect(v.usedMemoryText == "15.0 GB")
+        #expect(v.availableMemoryText == "3.0 GB")
+        #expect(v.cachedMemoryText == "4.3 GB")
+        #expect(v.wiredMemoryText == "3.5 GB")
+        #expect(v.compressedMemoryText == "6.1 GB")
+        #expect(v.appMemoryText == "5.3 GB")
+        #expect(v.swapText == "22.9 / 24.0 GB")
+        #expect(v.memoryPressureText == "Warning")
+    }
+
+    @Test func memoryPercentIsUsedOverTotal() {
+        let v = make(used: 16_106_127_360, total: 19_327_352_832)
+        #expect(abs(v.memoryUsedFraction - 16_106_127_360.0 / 19_327_352_832.0) < 1e-12)
+        #expect(v.memoryPercentText == "83.3%")
+    }
+
+    @Test func zeroTotalMemoryHasNoPercent() {
+        let v = make(used: 5, total: 0)
+        #expect(v.memoryUsedFraction == 0)
+        #expect(v.memoryPercentText == "—")
+    }
+
+    @Test func pageCountsShowEveryDigit() {
+        var v = make()
+        v.memoryReading = MemoryReading(used: 0, total: 0, pageIns: 593_588_718, pageOuts: 810_138)
+
+        #expect(v.pageInsText.filter(\.isNumber) == "593588718")
+        #expect(v.pageOutsText.filter(\.isNumber) == "810138")
+    }
+
+    @Test func unknownMemoryBreakdownShowsADash() {
+        let v = make(cpu: 0, used: 0, total: 0)
+
+        #expect(v.usedMemoryText == "—")
+        #expect(v.wiredMemoryText == "—")
+        #expect(v.compressedMemoryText == "—")
+        #expect(v.appMemoryText == "—")
+        #expect(v.pageInsText == "—")
+        #expect(v.pageOutsText == "—")
+        #expect(v.cachedMemoryText == "—")
+        #expect(v.availableMemoryText == "—")
+        #expect(v.swapText == "—")
+        #expect(v.memoryPressureText == "—")
+    }
+
+    @Test func memoryTextIsBinaryGB() {
+        #expect(make(used: 13_207_024_435, total: 34_359_738_368).memoryText == "12.3 / 32 GB")
     }
 
     @Test func uptimeTextDaysHours() {

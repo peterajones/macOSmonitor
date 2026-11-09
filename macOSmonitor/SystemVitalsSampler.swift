@@ -120,7 +120,10 @@ actor SystemVitalsSampler: SystemVitalsSampling {
             battery: batteryInfo,
             perCoreUsagePercent: perCore,
             diskReadBytesPerSec: diskRead,
-            diskWriteBytesPerSec: diskWrite
+            diskWriteBytesPerSec: diskWrite,
+            memoryReading: memory,
+            swap: host.swapUsage(),
+            memoryPressure: host.memoryPressureLevel().flatMap(MemoryPressure.init(kernelLevel:))
         )
     }
 
