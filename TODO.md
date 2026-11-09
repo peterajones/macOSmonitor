@@ -3,7 +3,6 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [x] Divide the process table into Applications (n) and Background processes (n) sections: Applications are regular Dock apps sorted by name, Background follows the clicked column, header counts follow search and empty sections hide; then re-run the Bug A repro (from: Peter, 2026-11-09)
 - [ ] Add a memory pressure gauge and the Cached/Swap/Available memory breakdown (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
 - [ ] Break network throughput down per interface (Wi-Fi vs Ethernet) (from: docs/superpowers/specs/2026-07-08-network-throughput-design.md)
 - [ ] Show command-line arguments (KERN_PROCARGS2) in the inspector (from: docs/superpowers/specs/2026-07-02-process-detail-inspector-design.md)
