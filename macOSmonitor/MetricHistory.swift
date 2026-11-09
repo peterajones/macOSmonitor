@@ -5,6 +5,8 @@ import Foundation
 struct MetricHistory: Equatable, Sendable {
     let capacity: Int
     private var storage: [Double] = []
+    /// Every sample ever appended, including evicted ones: a stable clock for time marks.
+    private(set) var totalAppended = 0
 
     init(capacity: Int = 60) {
         self.capacity = max(1, capacity)
@@ -12,6 +14,7 @@ struct MetricHistory: Equatable, Sendable {
 
     mutating func append(_ value: Double) {
         storage.append(value)
+        totalAppended += 1
         if storage.count > capacity {
             storage.removeFirst(storage.count - capacity)
         }

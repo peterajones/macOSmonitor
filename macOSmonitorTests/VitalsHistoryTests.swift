@@ -57,4 +57,15 @@ struct VitalsHistoryTests {
         #expect(history.cpu.values == [3, 4])
         #expect(history.networkIn.capacity == 2)
     }
+
+    @Test func longMemorySeriesOutlastsTheShortWindow() {
+        var history = VitalsHistory(capacity: 2)
+        for i in 1...4 {
+            history.append(vitals(cpu: 0, memory: UInt64(i),
+                                  netIn: 0, netOut: 0, diskRead: 0, diskWrite: 0))
+        }
+        #expect(history.memoryUsed.values == [3, 4])
+        #expect(history.memoryUsedLong.values == [1, 2, 3, 4])
+        #expect(history.memoryUsedLong.capacity == 300)
+    }
 }

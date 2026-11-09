@@ -19,6 +19,12 @@ struct MetricHistoryTests {
         #expect(history.latest == 3)
     }
 
+    @Test func totalAppendedKeepsCountingPastCapacity() {
+        var history = MetricHistory(capacity: 3)
+        for value in 1...5 { history.append(Double(value)) }
+        #expect(history.totalAppended == 5)
+    }
+
     @Test func appendingBeyondCapacityEvictsOldest() {
         var history = MetricHistory(capacity: 3)
         for value in 1...5 { history.append(Double(value)) }

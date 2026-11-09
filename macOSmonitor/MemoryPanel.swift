@@ -28,18 +28,21 @@ struct MemoryPanel: View {
                 .monospacedDigit()
                 .foregroundStyle(theme.secondaryText)
 
-            MetricGraph(values: model.history.memoryUsed.values,
+            MetricGraph(values: model.history.memoryUsedLong.values,
+                        capacity: VitalsHistory.longMemoryCapacity,
                         range: graphRange,
                         lineColor: theme.color(for: .memory),
                         fillColor: theme.fillColor(for: .memory),
-                        gridColor: theme.gridLine)
+                        gridColor: theme.gridLine,
+                        timeAxis: CompressedTimeAxis(samplesSeen: model.history.memoryUsedLong.totalAppended,
+                                                     gridInterval: 30))
                 .frame(minHeight: 120)
                 .overlay(alignment: .topLeading) { rangeLabel(graphRange.upperBound) }
                 .overlay(alignment: .bottomLeading) { rangeLabel(graphRange.lowerBound) }
                 .overlay { Rectangle().strokeBorder(theme.color(for: .memory), lineWidth: 1) }
 
             HStack {
-                Text("60s ago")
+                Text("5m ago")
                 Spacer()
                 Text("now")
             }
@@ -64,10 +67,10 @@ struct MemoryPanel: View {
         .background(theme.panelBackground)
     }
 
-    /// Zoomed to the last minute so ordinary movement is visible; a 1 GB minimum span
+    /// Zoomed to the recent window so ordinary movement is visible; a 1 GB minimum span
     /// keeps an idle machine's trace flat.
     private var graphRange: ClosedRange<Double> {
-        MetricScale.zoomed(model.history.memoryUsed.values,
+        MetricScale.zoomed(model.history.memoryUsedLong.values,
                            ceiling: Double(model.vitals?.totalMemoryBytes ?? 1),
                            minimumSpan: 1_073_741_824)
     }

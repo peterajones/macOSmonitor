@@ -1,5 +1,11 @@
 import SwiftUI
 
+/// Turns on a `MetricGraph`'s compressed time axis, with marks every `gridInterval` samples.
+struct CompressedTimeAxis {
+    let samplesSeen: Int
+    let gridInterval: Int
+}
+
 /// An immediate-mode history graph: grid, filled area, and stroked trace.
 /// Redrawn by ordinary @Observable invalidation at ~1 Hz — no TimelineView.
 struct MetricGraph: View {
@@ -9,6 +15,7 @@ struct MetricGraph: View {
     let lineColor: Color
     let fillColor: Color
     let gridColor: Color
+    var timeAxis: CompressedTimeAxis? = nil
 
     private let gridDivisions = 4
 
@@ -16,8 +23,10 @@ struct MetricGraph: View {
         Canvas { context, size in
             drawGrid(in: &context, size: size)
 
-            let points = GraphGeometry.points(values: values, capacity: capacity,
-                                              range: range, size: size)
+            let points = timeAxis == nil
+                ? GraphGeometry.points(values: values, capacity: capacity, range: range, size: size)
+                : GraphGeometry.compressedPoints(values: values, capacity: capacity,
+                                                 range: range, size: size)
             guard points.count > 1 else { return }
 
             var trace = Path()
@@ -40,12 +49,21 @@ struct MetricGraph: View {
             grid.move(to: CGPoint(x: 0, y: y))
             grid.addLine(to: CGPoint(x: size.width, y: y))
         }
-        for division in 0...gridDivisions {
-            let x = size.width * CGFloat(division) / CGFloat(gridDivisions)
+        for x in verticalGridPositions(width: size.width) {
             grid.move(to: CGPoint(x: x, y: 0))
             grid.addLine(to: CGPoint(x: x, y: size.height))
         }
         context.stroke(grid, with: .color(gridColor), lineWidth: 0.5)
+    }
+
+    private func verticalGridPositions(width: CGFloat) -> [CGFloat] {
+        if let timeAxis {
+            return GraphGeometry.timeGridPositions(samplesSeen: timeAxis.samplesSeen,
+                                                   capacity: capacity,
+                                                   interval: timeAxis.gridInterval,
+                                                   width: width)
+        }
+        return (0...gridDivisions).map { width * CGFloat($0) / CGFloat(gridDivisions) }
     }
 }
 
