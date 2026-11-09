@@ -3,6 +3,10 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
+- [ ] Divide the process table into Applications (n) and Background processes (n) sections: Applications are regular Dock apps sorted by name, Background follows the clicked column, header counts follow search and empty sections hide; then re-run the Bug A repro (from: Peter, 2026-11-09)
+- [ ] Add a memory pressure gauge and the Cached/Swap/Available memory breakdown (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
+- [ ] Break network throughput down per interface (Wi-Fi vs Ethernet) (from: docs/superpowers/specs/2026-07-08-network-throughput-design.md)
+- [ ] Show command-line arguments (KERN_PROCARGS2) in the inspector (from: docs/superpowers/specs/2026-07-02-process-detail-inspector-design.md)
 
 ## Later
 - [ ] Add a GPU utilisation/memory provider and surface it in the vitals and Performance views (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
@@ -12,13 +16,11 @@ _Single source of truth for unfinished work in this project. Tick an item when i
 - [ ] Add NPU utilisation (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
 - [ ] Add P/E core labelling and per-core clock speed to the CPU panel (from: docs/superpowers/specs/2026-08-26-performance-view-design.md)
 - [ ] Add per-core history traces to the CPU core grid (from: docs/superpowers/specs/2026-08-26-performance-view-design.md)
-- [ ] Add a memory pressure gauge and the Cached/Swap/Available memory breakdown (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
 - [ ] Apply the theme to the process table (from: docs/superpowers/specs/2026-08-26-performance-view-design.md)
-- [ ] Break network throughput down per interface (Wi-Fi vs Ethernet) (from: docs/superpowers/specs/2026-07-08-network-throughput-design.md)
 - [ ] Add a battery-detail view with health, cycle count and charging history (from: docs/superpowers/specs/2026-07-08-battery-vital-design.md)
 - [ ] Add a menu-bar surface (from: docs/superpowers/specs/2026-07-02-process-dashboard-design.md)
 - [ ] Build a privileged XPC helper (SMAppService) for full detail on, and termination of, all processes (from: docs/superpowers/specs/2026-07-02-process-dashboard-design.md)
-- [ ] Show command-line arguments (KERN_PROCARGS2) and environment variables in the inspector (from: docs/superpowers/specs/2026-07-02-process-detail-inspector-design.md)
+- [ ] Show environment variables in the inspector (from: docs/superpowers/specs/2026-07-02-process-detail-inspector-design.md)
 - [ ] Show per-process network and disk I/O (from: docs/superpowers/specs/2026-07-02-process-detail-inspector-design.md)
 - [ ] Allow renicing a process from the inspector (from: docs/superpowers/specs/2026-07-02-process-detail-inspector-design.md)
 - [ ] Support multi-select termination (from: docs/superpowers/specs/2026-07-02-process-termination-design.md)
