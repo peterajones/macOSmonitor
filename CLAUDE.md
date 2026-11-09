@@ -99,12 +99,14 @@ anything by deleting the code it guards and watching it fail.
 
 ## Known open issues
 
-- **Bug A — selection follows row POSITION, not process identity.** With the table sorted by
-  CPU% *ascending* (which clusters churning 0%-CPU helpers), selecting a row and waiting ~30s
-  leaves the highlight in place while the underlying process changes; the inspector follows the
-  new PID. `ProcessListModel.selectedRow` is correct — the defect is downstream in how SwiftUI
-  `Table(selection:)` reconciles a live-resorting dataset. **Safety: acting on a stale highlight
-  can Force-Quit the wrong process.** Full repro in the body of commit `b3224b9`. Unfixed.
+- **Bug A — selection followed row POSITION, not process identity: no longer reproduces.** With
+  the table sorted by CPU% *ascending* (which clusters churning 0%-CPU helpers), selecting a row
+  and waiting ~30s used to leave the highlight in place while the underlying process changed; the
+  inspector followed the new PID. Hand-checked on 2026-11-09 (Xcode 27, macOS 27.2, sectioned
+  table): the highlight and inspector PID stayed put. No commit targeted the cause, so it may have
+  gone away with the toolchain. **Safety: if it returns, acting on a stale highlight can Force-Quit
+  the wrong process.** Re-run this repro after changing how `Table` rows or selection work; full
+  steps in the body of commit `cd69ee7`.
 
 ## Process
 
