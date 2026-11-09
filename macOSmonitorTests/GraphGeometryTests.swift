@@ -110,4 +110,76 @@ struct GraphGeometryTests {
     @Test func noSamplesMeansNoGridLines() {
         #expect(GraphGeometry.timeGridPositions(samplesSeen: 0, capacity: 10, interval: 3, width: 100).isEmpty)
     }
+
+    @Test func phaseGlidesTheSamplesBetweenTicks() {
+        // Phase 0.5 shifts every age by -0.5: ages 0.5 and -0.5. A negative age continues
+        // past the right edge along the curve's starting slope, 1/ln(10) per age here.
+        let points = GraphGeometry.compressedPoints(values: [1, 2], capacity: 10,
+                                                    range: 0...100, size: size, phase: 0.5)
+        #expect(close(points.map(\.x), [82.39, 121.71]))
+    }
+
+    @Test func phaseZeroHoldsTheNewestSampleOneTickPastTheEdge() {
+        let points = GraphGeometry.compressedPoints(values: [1, 2], capacity: 10,
+                                                    range: 0...100, size: size, phase: 0)
+        #expect(close(points.map(\.x), [100, 143.43]))
+    }
+
+    @Test func gridLinesGlideWithThePhase() {
+        // Marks aged 0, 3 and 6 become -1, 2 and 5 at phase 0.
+        let xs = GraphGeometry.timeGridPositions(samplesSeen: 7, capacity: 10, interval: 3,
+                                                 width: 100, phase: 0)
+        #expect(close(xs, [143.43, 52.29, 22.18]))
+    }
+
+    private let base = Date(timeIntervalSince1970: 1_000)
+
+    @Test func scrollPhaseIsTheFractionOfATickElapsed() {
+        #expect(GraphGeometry.scrollPhase(now: base.addingTimeInterval(0.25), lastSample: base, interval: 2) == 0.125)
+    }
+
+    @Test func scrollPhaseStopsAtOneWhenASampleIsLate() {
+        #expect(GraphGeometry.scrollPhase(now: base.addingTimeInterval(3), lastSample: base, interval: 1) == 1)
+    }
+
+    @Test func scrollPhaseStartsAtZeroForATimestampAhead() {
+        #expect(GraphGeometry.scrollPhase(now: base.addingTimeInterval(-1), lastSample: base, interval: 1) == 0)
+    }
+
+    @Test func scrollPhaseRestsWithoutASample() {
+        #expect(GraphGeometry.scrollPhase(now: base, lastSample: nil, interval: 1) == 1)
+    }
+
+    @Test func aCurveNeedsTwoPoints() {
+        #expect(GraphGeometry.smoothSegments([]).isEmpty)
+        #expect(GraphGeometry.smoothSegments([CGPoint(x: 1, y: 1)]).isEmpty)
+    }
+
+    @Test func curvePassesThroughEveryPoint() {
+        let points = [CGPoint(x: 0, y: 0), CGPoint(x: 10, y: 10), CGPoint(x: 20, y: 40)]
+        #expect(GraphGeometry.smoothSegments(points).map(\.end) == [points[1], points[2]])
+    }
+
+    @Test func curveFlattensAtAPeakSoItCannotOvershoot() {
+        let segments = GraphGeometry.smoothSegments([CGPoint(x: 0, y: 10), CGPoint(x: 9, y: 0), CGPoint(x: 18, y: 10)])
+        #expect(segments.first?.control2 == CGPoint(x: 6, y: 0))
+        #expect(segments.last?.control1 == CGPoint(x: 12, y: 0))
+    }
+
+    @Test func curveControlsFollowARisingRun() {
+        // Slopes 1 and 3 over equal gaps: the middle tangent is their harmonic mean, 1.5.
+        let segments = GraphGeometry.smoothSegments([CGPoint(x: 0, y: 0), CGPoint(x: 9, y: 9), CGPoint(x: 18, y: 36)])
+        #expect(segments.first?.control1 == CGPoint(x: 3, y: 3))
+        #expect(segments.first?.control2 == CGPoint(x: 6, y: 4.5))
+        #expect(segments.last?.control1 == CGPoint(x: 12, y: 13.5))
+        #expect(segments.last?.control2 == CGPoint(x: 15, y: 27))
+    }
+
+    @Test func curveWeighsUnevenGaps() {
+        // Gaps 10 and 30, slopes 2 and 1/3: weights 70 and 50 give a tangent of 120/185.
+        let segments = GraphGeometry.smoothSegments([CGPoint(x: 0, y: 0), CGPoint(x: 10, y: 20), CGPoint(x: 40, y: 30)])
+        let tangent: CGFloat = 120.0 / 185.0
+        #expect(abs((segments.last?.control1.y ?? 0) - (20 + tangent * 10)) < 0.001)
+        #expect(abs((segments.first?.control2.y ?? 0) - (20 - tangent * 10 / 3)) < 0.001)
+    }
 }

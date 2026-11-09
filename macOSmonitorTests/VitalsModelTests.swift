@@ -19,6 +19,14 @@ struct VitalsModelTests {
         #expect(model.vitals?.coreCount == 8)
     }
 
+    @Test func refreshOnceRecordsWhenTheSampleArrived() async {
+        let arrival = Date(timeIntervalSince1970: 1_000)
+        let model = VitalsModel(sampler: FakeVitalsSampler(), now: { arrival })
+        #expect(model.lastSampleDate == nil)
+        await model.refreshOnce()
+        #expect(model.lastSampleDate == arrival)
+    }
+
     @Test func refreshOnceAppendsToHistory() async {
         let fake = FakeVitalsSampler()
         let model = VitalsModel(sampler: fake)

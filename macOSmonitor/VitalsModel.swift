@@ -11,13 +11,19 @@ final class VitalsModel {
     /// Sliding 60-second window per metric, fed one snapshot per tick.
     private(set) var history = VitalsHistory()
 
+    /// When the latest sample arrived, so a graph can glide between samples.
+    private(set) var lastSampleDate: Date?
+
     private let sampler: any SystemVitalsSampling
     private let interval: Duration
+    private let now: @Sendable () -> Date
 
     init(sampler: any SystemVitalsSampling = SystemVitalsSampler(),
-         interval: Duration = .seconds(1)) {
+         interval: Duration = .seconds(1),
+         now: @escaping @Sendable () -> Date = { Date() }) {
         self.sampler = sampler
         self.interval = interval
+        self.now = now
     }
 
     /// One sample → publish it and extend the history.
@@ -25,6 +31,7 @@ final class VitalsModel {
         let sample = await sampler.sample()
         vitals = sample
         history.append(sample)
+        lastSampleDate = now()
     }
 
     /// Owned by the view via `.task`, which cancels it on disappear.

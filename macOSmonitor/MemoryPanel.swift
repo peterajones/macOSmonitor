@@ -35,7 +35,9 @@ struct MemoryPanel: View {
                         fillColor: theme.fillColor(for: .memory),
                         gridColor: theme.gridLine,
                         timeAxis: CompressedTimeAxis(samplesSeen: model.history.memoryUsedLong.totalAppended,
-                                                     gridInterval: 30))
+                                                     gridInterval: 30,
+                                                     lastSample: model.lastSampleDate,
+                                                     sampleInterval: 1))
                 .frame(minHeight: 120)
                 .overlay(alignment: .topLeading) { rangeLabel(graphRange.upperBound) }
                 .overlay(alignment: .bottomLeading) { rangeLabel(graphRange.lowerBound) }
