@@ -3,6 +3,8 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
+- [ ] Update the stale ProcessArguments references after the rename to ProcessCommandLine: the commit lists both macOSmonitor/ProcessArguments.swift and macOSmonitorTests/ProcessArgumentsTests.swift as changed, alongside new ProcessCommandLine files. Confirm the old source and test files were removed rather than left as duplicates, and rename the tests to match. (from: review harness)
+- [ ] Add a test covering the Environment section's collapse-on-selection-change behaviour, and one for the platform-binary case where macOS withholds the environment (empty or unavailable state). (from: review harness)
 
 ## Later
 - [ ] Add a GPU utilisation/memory provider and surface it in the vitals and Performance views (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
