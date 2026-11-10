@@ -19,9 +19,13 @@ struct CPUPanel: View {
             }
 
             if showsCores {
-                CoreGrid(percentages: model.vitals?.perCoreUsagePercent ?? [],
-                         onColor: theme.meterOn,
-                         offColor: theme.meterOff)
+                CoreGrid(histories: model.history.perCore,
+                         lineColor: theme.graphLine,
+                         fillColor: theme.graphFill,
+                         backgroundColor: theme.meterOff)
+                Text("Last 60s per core")
+                    .font(.caption2)
+                    .foregroundStyle(theme.secondaryText)
             } else {
                 MetricGraph(values: model.history.cpu.values,
                             range: MetricScale.fixed(100),

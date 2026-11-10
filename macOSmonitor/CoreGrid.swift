@@ -1,28 +1,29 @@
 import SwiftUI
 
-/// One bar per logical core, filled to its current utilisation. Instantaneous —
-/// per-core history is deliberately not stored.
+/// One small 60-second trace per logical core, drawn with the same `MetricGraph` as the
+/// overall CPU graph. The newest sample is at each trace's right edge.
 struct CoreGrid: View {
-    let percentages: [Double]
-    let onColor: Color
-    let offColor: Color
+    let histories: [MetricHistory]
+    let lineColor: Color
+    let fillColor: Color
+    let backgroundColor: Color
     @Environment(\.theme) private var theme
 
     private let columns = [GridItem(.adaptive(minimum: 68), spacing: 8)]
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: 8) {
-            ForEach(Array(percentages.enumerated()), id: \.offset) { index, percent in
+            ForEach(Array(histories.enumerated()), id: \.offset) { index, history in
                 VStack(spacing: 4) {
-                    GeometryReader { geometry in
-                        ZStack(alignment: .bottom) {
-                            Rectangle().fill(offColor)
-                            Rectangle()
-                                .fill(onColor)
-                                .frame(height: geometry.size.height * CGFloat(min(max(percent, 0), 100)) / 100)
-                        }
-                    }
-                    .frame(height: 44)
+                    // No grid lines: at this size they'd be clutter, not a scale.
+                    MetricGraph(values: history.values,
+                                capacity: history.capacity,
+                                range: MetricScale.fixed(100),
+                                lineColor: lineColor,
+                                fillColor: fillColor,
+                                gridColor: .clear)
+                        .background(backgroundColor)
+                        .frame(height: 56)
                     Text("\(index)")
                         .font(.caption2)
                         .monospacedDigit()

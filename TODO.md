@@ -3,7 +3,7 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [ ] Add per-core history traces to the CPU core grid (from: docs/superpowers/specs/2026-08-26-performance-view-design.md)
+- [x] Add per-core history traces to the CPU core grid (from: docs/superpowers/specs/2026-08-26-performance-view-design.md)
 
 ## Later
 - [ ] Add a GPU utilisation/memory provider and surface it in the vitals and Performance views (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)

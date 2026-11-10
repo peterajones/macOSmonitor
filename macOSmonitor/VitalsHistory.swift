@@ -11,10 +11,15 @@ struct VitalsHistory: Equatable, Sendable {
     var diskRead: MetricHistory
     var diskWrite: MetricHistory
     var memoryUsedLong: MetricHistory
+    /// One series per logical core, for the CPU panel's Logical Processors traces. Sized by
+    /// the first sample that carries per-core data, and rebuilt if the core count changes.
+    private(set) var perCore: [MetricHistory] = []
+    private let capacity: Int
 
     static let longMemoryCapacity = 300
 
     init(capacity: Int = 60) {
+        self.capacity = capacity
         cpu = MetricHistory(capacity: capacity)
         memoryUsed = MetricHistory(capacity: capacity)
         networkIn = MetricHistory(capacity: capacity)
@@ -33,5 +38,18 @@ struct VitalsHistory: Equatable, Sendable {
         networkOut.append(vitals.networkOutBytesPerSec)
         diskRead.append(vitals.diskReadBytesPerSec)
         diskWrite.append(vitals.diskWriteBytesPerSec)
+        appendPerCore(vitals.perCoreUsagePercent)
+    }
+
+    /// A sample without per-core data leaves the series alone rather than wiping them;
+    /// a different core count makes the old series meaningless, so they start over.
+    private mutating func appendPerCore(_ percentages: [Double]) {
+        guard !percentages.isEmpty else { return }
+        if perCore.count != percentages.count {
+            perCore = percentages.map { _ in MetricHistory(capacity: capacity) }
+        }
+        for (index, percent) in percentages.enumerated() {
+            perCore[index].append(percent)
+        }
     }
 }

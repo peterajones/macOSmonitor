@@ -4,7 +4,8 @@ import Testing
 struct VitalsHistoryTests {
     private func vitals(cpu: Double, memory: UInt64,
                         netIn: Double, netOut: Double,
-                        diskRead: Double, diskWrite: Double) -> SystemVitals {
+                        diskRead: Double, diskWrite: Double,
+                        perCore: [Double] = []) -> SystemVitals {
         SystemVitals(cpuUsagePercent: cpu,
                      usedMemoryBytes: memory,
                      totalMemoryBytes: 16_000_000_000,
@@ -17,7 +18,7 @@ struct VitalsHistoryTests {
                      networkInBytesPerSec: netIn,
                      networkOutBytesPerSec: netOut,
                      battery: nil,
-                     perCoreUsagePercent: [],
+                     perCoreUsagePercent: perCore,
                      diskReadBytesPerSec: diskRead,
                      diskWriteBytesPerSec: diskWrite)
     }
@@ -67,5 +68,40 @@ struct VitalsHistoryTests {
         #expect(history.memoryUsed.values == [3, 4])
         #expect(history.memoryUsedLong.values == [1, 2, 3, 4])
         #expect(history.memoryUsedLong.capacity == 300)
+    }
+
+    private func appendCores(_ history: inout VitalsHistory, _ perCore: [Double]) {
+        history.append(vitals(cpu: 0, memory: 0, netIn: 0, netOut: 0,
+                              diskRead: 0, diskWrite: 0, perCore: perCore))
+    }
+
+    @Test func perCoreSeriesTrackEachCoreSeparately() {
+        // Three cores, two samples: a transposed implementation (one series per sample)
+        // gives two series of three instead of three series of two.
+        var history = VitalsHistory(capacity: 60)
+        appendCores(&history, [10, 20, 30])
+        appendCores(&history, [11, 21, 31])
+        #expect(history.perCore.map(\.values) == [[10, 11], [20, 21], [30, 31]])
+    }
+
+    @Test func perCoreSeriesUseTheHistoryCapacity() {
+        var history = VitalsHistory(capacity: 2)
+        for i in 1...3 { appendCores(&history, [Double(i), Double(i * 10)]) }
+        #expect(history.perCore.map(\.values) == [[2, 3], [20, 30]])
+    }
+
+    @Test func aChangedCoreCountStartsFresh() {
+        var history = VitalsHistory(capacity: 60)
+        appendCores(&history, [1, 2])
+        appendCores(&history, [3, 4, 5])
+        #expect(history.perCore.map(\.values) == [[3], [4], [5]])
+    }
+
+    @Test func aSampleWithoutPerCoreDataIsSkipped() {
+        var history = VitalsHistory(capacity: 60)
+        appendCores(&history, [10, 20])
+        appendCores(&history, [])
+        #expect(history.perCore.map(\.values) == [[10], [20]])
+        #expect(history.cpu.values.count == 2)   // the overall series still advanced
     }
 }
