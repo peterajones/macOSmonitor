@@ -7,7 +7,14 @@ final class ProcessListModel {
     private(set) var rows: [ProcessInfoRow] = []
 
     /// Currently selected process (single source of truth, bound to the table).
-    var selectedPID: pid_t?
+    var selectedPID: pid_t? {
+        // Collapse the environment when the selection moves, so revealing one process's
+        // variables (which often hold secrets) never reveals another's.
+        didSet { if selectedPID != oldValue { isEnvironmentRevealed = false } }
+    }
+    /// Whether the inspector's Environment section is expanded. Collapsed by default.
+    /// Held here rather than as view @State so the reset rule above is testable.
+    var isEnvironmentRevealed = false
     /// Detail for the selected process; nil when nothing selected or access is denied.
     private(set) var selectedDetails: ProcessDetails?
     /// Open network sockets for the selected process; empty when none selected or denied.

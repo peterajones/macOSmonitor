@@ -97,6 +97,14 @@ anything by deleting the code it guards and watching it fail.
   (e.g. `themeID`) from a script: quit the app, `killall cfprefsd`, THEN edit that plist with
   PlistBuddy. Killing cfprefsd *after* editing flushes its stale cache back over your change.
 
+- **The test host IS the app, and shares Peter's preferences.** Unit tests run inside the real
+  app process, reading `~/Library/Preferences/ca.peter-jones.macOSmonitor.plist`. Anything a test
+  reads from live window or app state (toolbar items, window frames, `@AppStorage` values) reflects
+  how Peter has customized his copy, not the app's defaults. `WindowToolbarTests` failed once
+  because he had removed Force Quit from his toolbar. Test against declared defaults (e.g.
+  `toolbarDefaultItemIdentifiers`), never the user's current arrangement, and never write to
+  those preferences from a test.
+
 ## Known open issues
 
 - **Bug A — selection followed row POSITION, not process identity: no longer reproduces.** With

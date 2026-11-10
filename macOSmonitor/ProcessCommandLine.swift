@@ -7,6 +7,22 @@ struct ProcessCommandLine: Equatable, Sendable {
     let environment: [String]
 }
 
+/// What the inspector's Environment section shows for a process.
+enum EnvironmentDisplay: Equatable {
+    /// The kernel refused the read (another user's process).
+    case unavailable
+    /// Readable, but empty: macOS withholds the environment of its own platform binaries
+    /// (zsh, cfprefsd, …) from other processes. A genuinely empty environment is very rare.
+    case hiddenByMacOS
+    /// The variables, sorted by name.
+    case variables([String])
+
+    init(_ commandLine: ProcessCommandLine?) {
+        guard let commandLine else { self = .unavailable; return }
+        self = commandLine.environment.isEmpty ? .hiddenByMacOS : .variables(commandLine.environment.sorted())
+    }
+}
+
 /// Fetches a process's command line. Implemented by `ProcInfo`; behind a protocol so the
 /// model can be tested with a fake.
 protocol ProcessCommandLineProviding: Sendable {

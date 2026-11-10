@@ -20,7 +20,10 @@ struct WindowToolbarTests {
 
     @Test func toolbarIsCustomizableAndHoldsEveryButton() async throws {
         let toolbar = try #require(try await mainToolbar())
-        let identifiers = toolbar.items.map(\.itemIdentifier.rawValue)
+        // The app's default items, not `toolbar.items`: the test host shares the app's
+        // preferences, so `items` reflects whatever the user has customized away.
+        let identifiers = try #require(toolbar.delegate?.toolbarDefaultItemIdentifiers?(toolbar))
+            .map(\.rawValue)
 
         #expect(toolbar.allowsUserCustomization, "toolbar items: \(identifiers)")
         // Present on the launch surface (Summary), not only on Processes: a toolbar that

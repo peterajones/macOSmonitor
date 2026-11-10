@@ -131,6 +131,23 @@ struct ProcessListModelTests {
         #expect(model.selectedCommandLine == nil)
     }
 
+    @Test func revealedEnvironmentCollapsesWhenTheSelectionChanges() {
+        let model = ProcessListModel(sampler: FakeSampler())
+        #expect(model.isEnvironmentRevealed == false)   // collapsed by default
+
+        model.selectedPID = 10
+        model.isEnvironmentRevealed = true
+        model.selectedPID = 10                          // re-set to the same process: stays open
+        #expect(model.isEnvironmentRevealed == true)
+
+        model.selectedPID = 11                          // another process: never shows its secrets
+        #expect(model.isEnvironmentRevealed == false)
+
+        model.isEnvironmentRevealed = true
+        model.selectedPID = nil                         // deselecting collapses too
+        #expect(model.isEnvironmentRevealed == false)
+    }
+
     /// The loop moved to ContentView in M11, so it now outlives ProcessesView.
     /// Cancellation must still stop it, or navigating away would leak a sampler.
     @Test func runStopsSamplingAfterCancellation() async {

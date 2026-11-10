@@ -69,6 +69,24 @@ struct ProcessCommandLineParseTests {
     }
 }
 
+struct EnvironmentDisplayTests {
+    @Test func deniedProcessIsUnavailable() {
+        #expect(EnvironmentDisplay(nil) == .unavailable)
+    }
+
+    @Test func emptyEnvironmentIsHiddenByMacOS() {
+        // What a platform binary returns: arguments readable, environment withheld.
+        let commandLine = ProcessCommandLine(arguments: ["/bin/zsh"], environment: [])
+        #expect(EnvironmentDisplay(commandLine) == .hiddenByMacOS)
+    }
+
+    @Test func variablesAreSortedByName() {
+        let commandLine = ProcessCommandLine(arguments: ["x"],
+                                             environment: ["PATH=/bin", "HOME=/Users/me", "A=1"])
+        #expect(EnvironmentDisplay(commandLine) == .variables(["A=1", "HOME=/Users/me", "PATH=/bin"]))
+    }
+}
+
 struct ProcInfoCommandLineTests {
     let sut = ProcInfo()
 
@@ -112,6 +130,24 @@ struct ProcInfoCommandLineTests {
         #expect(commandLine?.arguments == [sleepCopy.path, "5"])
         // Sorted: Process passes its environment dictionary in no fixed order.
         #expect(commandLine?.environment.sorted() == ["ALPHA=1", "EMPTY=", "PATH_LIKE=/a:/b"])
+    }
+
+    /// The other half of the re-signed-copy test above: Apple's own /bin/sleep, launched with
+    /// the same environment, comes back with none. The inspector's "hidden by macOS for
+    /// system processes" message rests on this; if a future macOS stops withholding it,
+    /// this fails and the message needs revisiting.
+    @Test func platformBinaryEnvironmentIsWithheld() throws {
+        let child = Process()
+        child.executableURL = URL(fileURLWithPath: "/bin/sleep")
+        child.arguments = ["5"]
+        child.environment = ["ALPHA": "1", "BETA": "2"]
+        try child.run()
+        defer { child.terminate(); child.waitUntilExit() }
+
+        let commandLine = sut.commandLine(pid: child.processIdentifier)
+        #expect(commandLine?.arguments == ["/bin/sleep", "5"])   // still readable
+        #expect(commandLine?.environment == [])
+        #expect(EnvironmentDisplay(commandLine) == .hiddenByMacOS)
     }
 
     // Other users' processes refuse KERN_PROCARGS2 to a normal user; skipped under root.

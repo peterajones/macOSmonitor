@@ -6,11 +6,10 @@ import SwiftUI
 /// does not reliably re-evaluate on the presenting view's observable-state changes.
 struct ProcessDetailView: View {
     let model: ProcessListModel
-    /// Local on purpose: resetting to collapsed whenever the inspector is rebuilt is the
-    /// safe default for a section that can show secrets.
-    @State private var showEnvironment = false
 
     var body: some View {
+        @Bindable var model = model   // for the Environment disclosure's isExpanded binding
+
         if let row = model.selectedRow {
             Form {
                 Section("Process") {
@@ -66,31 +65,29 @@ struct ProcessDetailView: View {
                     }
                 }
                 Section {
-                    // Collapsed by default: environments often hold secrets (API tokens), so
-                    // nothing shows until asked, e.g. while screen-sharing.
-                    if let environment = model.selectedCommandLine?.environment, environment.isEmpty {
-                        // macOS withholds the environment of its own platform binaries
-                        // (zsh, cfprefsd, …); a genuinely empty environment is very rare.
+                    // Collapsed by default, and again on every selection change (see
+                    // ProcessListModel.selectedPID): environments often hold secrets (API
+                    // tokens), so nothing shows until asked, e.g. while screen-sharing.
+                    switch EnvironmentDisplay(model.selectedCommandLine) {
+                    case .unavailable:
+                        Text("Environment unavailable (permission denied).")
+                            .foregroundStyle(.secondary)
+                    case .hiddenByMacOS:
                         Text("Environment hidden by macOS for system processes.")
                             .foregroundStyle(.secondary)
-                    } else if let environment = model.selectedCommandLine?.environment {
-                        DisclosureGroup("Environment (\(environment.count))", isExpanded: $showEnvironment) {
-                            ForEach(Array(environment.sorted().enumerated()), id: \.offset) { _, variable in
+                    case .variables(let variables):
+                        DisclosureGroup("Environment (\(variables.count))",
+                                        isExpanded: $model.isEnvironmentRevealed) {
+                            ForEach(Array(variables.enumerated()), id: \.offset) { _, variable in
                                 Text(variable)
                                     .monospaced()
                                     .textSelection(.enabled)
                             }
                         }
-                    } else {
-                        Text("Environment unavailable (permission denied).")
-                            .foregroundStyle(.secondary)
                     }
                 }
             }
             .formStyle(.grouped)
-            // Re-hide the environment when the selection moves, so expanding it for one
-            // process never reveals another's.
-            .onChange(of: model.selectedPID) { showEnvironment = false }
         } else {
             ContentUnavailableView("No Selection", systemImage: "cpu",
                                    description: Text("Select a process to see details."))
