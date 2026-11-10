@@ -3,7 +3,6 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [x] Break network throughput down per interface (Wi-Fi vs Ethernet) (from: docs/superpowers/specs/2026-07-08-network-throughput-design.md)
 - [ ] Show command-line arguments (KERN_PROCARGS2) in the inspector (from: docs/superpowers/specs/2026-07-02-process-detail-inspector-design.md)
 - [ ] Add a regression test for the Memory graph's TimelineView lifecycle, confirming the 15 fps animation runs only while the panel is on screen and stops when it is hidden. (from: review harness)
 
