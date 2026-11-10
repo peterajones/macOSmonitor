@@ -15,6 +15,7 @@ struct SystemVitals: Equatable, Sendable {
     let osVersion: String        // e.g. "macOS 26.5"
     var networkInBytesPerSec: Double = 0
     var networkOutBytesPerSec: Double = 0
+    var networkInterfaces: [InterfaceRate] = []
     var battery: BatteryInfo? = nil
     var perCoreUsagePercent: [Double] = []
     var diskReadBytesPerSec: Double = 0

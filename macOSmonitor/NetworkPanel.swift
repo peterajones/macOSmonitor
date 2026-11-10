@@ -43,6 +43,32 @@ struct NetworkPanel: View {
             .font(.caption2)
             .foregroundStyle(theme.secondaryText)
 
+            if let interfaces = model.vitals?.networkInterfaces, !interfaces.isEmpty {
+                Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 6) {
+                    GridRow {
+                        Text("Interface")
+                        Label("Received", systemImage: "arrow.down")
+                            .gridColumnAlignment(.trailing)
+                        Label("Sent", systemImage: "arrow.up")
+                            .gridColumnAlignment(.trailing)
+                    }
+                    .font(.caption)
+                    .foregroundStyle(theme.secondaryText)
+
+                    Divider().gridCellUnsizedAxes(.horizontal)
+
+                    ForEach(interfaces, id: \.name) { row in
+                        GridRow {
+                            Text(row.name).foregroundStyle(theme.primaryText)
+                            Text(row.inText).foregroundStyle(theme.graphLine)
+                            Text(row.outText).foregroundStyle(theme.secondaryText)
+                        }
+                        .monospacedDigit()
+                    }
+                }
+                .padding(.top, 8)
+            }
+
             Spacer()
         }
         .padding(20)

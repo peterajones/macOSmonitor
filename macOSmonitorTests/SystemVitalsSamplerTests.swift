@@ -14,8 +14,21 @@ final class FakeHostStats: HostStatsProviding, @unchecked Sendable {
 }
 
 final class FakeNetworkStats: NetworkStatsProviding, @unchecked Sendable {
-    var next: (received: UInt64, sent: UInt64)?
-    func counters() -> (received: UInt64, sent: UInt64)? { next }
+    var interfaces: [InterfaceCounters]?
+    var ports: [String: HardwarePort] = [:]
+    private(set) var portLookups = 0
+
+    /// Shorthand for a single Wi-Fi interface carrying all the traffic.
+    var next: (received: UInt64, sent: UInt64)? {
+        get { nil }
+        set { interfaces = newValue.map { [InterfaceCounters(name: "en0", received: $0.received, sent: $0.sent)] } }
+    }
+
+    func interfaceCounters() -> [InterfaceCounters]? { interfaces }
+    func hardwarePorts() -> [String: HardwarePort] {
+        portLookups += 1
+        return ports
+    }
 }
 
 final class FakeBatteryStats: BatteryStatsProviding, @unchecked Sendable {
@@ -176,6 +189,82 @@ struct SystemVitalsSamplerTests {
         let s = await sampler.sample()
         #expect(s.networkInBytesPerSec == 0)
         #expect(s.networkOutBytesPerSec == 0)
+    }
+
+    @Test func perInterfaceRatesArePublishedUnderPortNames() async {
+        let net = FakeNetworkStats()
+        net.ports = ["en0": HardwarePort(displayName: "Wi-Fi", kind: .wifi),
+                     "en6": HardwarePort(displayName: "USB 10/100/1000 LAN", kind: .ethernet)]
+        let clock = FakeClock()
+        let sampler = SystemVitalsSampler(host: FakeHostStats(), network: net, now: { clock.now })
+
+        net.interfaces = [InterfaceCounters(name: "en6", received: 10_000, sent: 10_000),
+                          InterfaceCounters(name: "en0", received: 10_000, sent: 10_000)]
+        _ = await sampler.sample()
+        clock.now = 2_000_000_000                                   // +2.0 s
+        net.interfaces = [InterfaceCounters(name: "en6", received: 1_010_000, sent: 30_000),
+                          InterfaceCounters(name: "en0", received: 16_000, sent: 10_400)]
+        let s = await sampler.sample()
+
+        #expect(s.networkInterfaces == [
+            InterfaceRate(name: "Wi-Fi", kind: .wifi, inBytesPerSec: 3_000, outBytesPerSec: 200),
+            InterfaceRate(name: "USB 10/100/1000 LAN", kind: .ethernet,
+                          inBytesPerSec: 500_000, outBytesPerSec: 10_000),
+        ])
+        #expect(s.networkInBytesPerSec == 503_000)
+        #expect(s.networkOutBytesPerSec == 10_200)
+    }
+
+    @Test func oneInterfaceDroppingDoesNotZeroTheOthers() async {
+        let net = FakeNetworkStats()
+        let clock = FakeClock()
+        let sampler = SystemVitalsSampler(host: FakeHostStats(), network: net, now: { clock.now })
+
+        net.interfaces = [InterfaceCounters(name: "en0", received: 9_000_000, sent: 9_000_000),
+                          InterfaceCounters(name: "en6", received: 1_000, sent: 1_000)]
+        _ = await sampler.sample()
+        clock.now = 1_000_000_000
+        // en0 reset (counters went backwards); en6 advanced +4_000 / +2_000.
+        net.interfaces = [InterfaceCounters(name: "en0", received: 100, sent: 100),
+                          InterfaceCounters(name: "en6", received: 5_000, sent: 3_000)]
+        let s = await sampler.sample()
+
+        #expect(s.networkInBytesPerSec == 4_000)
+        #expect(s.networkOutBytesPerSec == 2_000)
+    }
+
+    @Test func interfaceThatAppearsMidStreamStartsAtZero() async {
+        let net = FakeNetworkStats()
+        let clock = FakeClock()
+        let sampler = SystemVitalsSampler(host: FakeHostStats(), network: net, now: { clock.now })
+
+        net.interfaces = [InterfaceCounters(name: "en0", received: 1_000, sent: 1_000)]
+        _ = await sampler.sample()
+        clock.now = 1_000_000_000
+        // A cable is plugged in: en6 arrives with a large lifetime total and no baseline.
+        net.interfaces = [InterfaceCounters(name: "en0", received: 1_500, sent: 1_250),
+                          InterfaceCounters(name: "en6", received: 80_000_000, sent: 9_000_000)]
+        let s = await sampler.sample()
+
+        #expect(s.networkInBytesPerSec == 500)
+        #expect(s.networkOutBytesPerSec == 250)
+    }
+
+    @Test func hardwarePortsAreLookedUpOnlyWhenTheInterfaceSetChanges() async {
+        let net = FakeNetworkStats()
+        let sampler = SystemVitalsSampler(host: FakeHostStats(), network: net)
+
+        net.interfaces = [InterfaceCounters(name: "en0", received: 1, sent: 1)]
+        _ = await sampler.sample()
+        _ = await sampler.sample()
+        _ = await sampler.sample()
+        #expect(net.portLookups == 1)
+
+        net.interfaces = [InterfaceCounters(name: "en0", received: 1, sent: 1),
+                          InterfaceCounters(name: "en6", received: 1, sent: 1)]
+        _ = await sampler.sample()
+        _ = await sampler.sample()
+        #expect(net.portLookups == 2)
     }
 
     @Test func vitalsPublishBatteryWhenPresent() async {

@@ -14,7 +14,9 @@ actor SystemVitalsSampler: SystemVitalsSampling {
     private let disk: any DiskStatsProviding
     private let now: @Sendable () -> UInt64
     private var previousCores: [CoreTicks]?
-    private var previousCounters: (received: UInt64, sent: UInt64)?
+    private var previousInterfaces: [String: InterfaceCounters] = [:]
+    private var previousInterfaceNames: Set<String>?
+    private var hardwarePorts: [String: HardwarePort] = [:]
     private var previousTime: UInt64?
     private var previousDiskCounters: (read: UInt64, written: UInt64)?
     private var previousDiskTime: UInt64?
@@ -63,20 +65,37 @@ actor SystemVitalsSampler: SystemVitalsSampling {
 
         var networkIn = 0.0
         var networkOut = 0.0
-        if let counters = network.counters() {
+        var networkInterfaces: [InterfaceRate] = []
+        if let interfaces = network.interfaceCounters() {
             let time = now()
-            if let previous = previousCounters, let previousT = previousTime, time > previousT {
+            // Rates per interface, each guarded on its own: one interface resetting (or one
+            // just plugged in, with no baseline) reports 0 without zeroing its neighbours.
+            var rates: [String: (in: Double, out: Double)] = [:]
+            if let previousT = previousTime, time > previousT {
                 let seconds = Double(time - previousT) / 1_000_000_000
-                if seconds > 0 {
-                    if counters.received >= previous.received {
-                        networkIn = Double(counters.received - previous.received) / seconds
-                    }
-                    if counters.sent >= previous.sent {
-                        networkOut = Double(counters.sent - previous.sent) / seconds
-                    }
+                for current in interfaces {
+                    guard let prior = previousInterfaces[current.name] else { continue }
+                    let rateIn = current.received >= prior.received
+                        ? Double(current.received - prior.received) / seconds : 0
+                    let rateOut = current.sent >= prior.sent
+                        ? Double(current.sent - prior.sent) / seconds : 0
+                    rates[current.name] = (in: rateIn, out: rateOut)
+                    networkIn += rateIn
+                    networkOut += rateOut
                 }
             }
-            previousCounters = counters
+
+            // Port names only change when hardware comes or goes, and the lookup is costly.
+            let names = Set(interfaces.map(\.name))
+            if names != previousInterfaceNames {
+                hardwarePorts = network.hardwarePorts()
+                previousInterfaceNames = names
+            }
+            networkInterfaces = NetworkBreakdown.rows(counters: interfaces, rates: rates,
+                                                      ports: hardwarePorts)
+
+            previousInterfaces = Dictionary(interfaces.map { ($0.name, $0) },
+                                            uniquingKeysWith: { first, _ in first })
             previousTime = time
         }
 
@@ -117,6 +136,7 @@ actor SystemVitalsSampler: SystemVitalsSampling {
             osVersion: "macOS \(version.majorVersion).\(version.minorVersion)",
             networkInBytesPerSec: networkIn,
             networkOutBytesPerSec: networkOut,
+            networkInterfaces: networkInterfaces,
             battery: batteryInfo,
             perCoreUsagePercent: perCore,
             diskReadBytesPerSec: diskRead,
