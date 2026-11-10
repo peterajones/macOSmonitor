@@ -33,6 +33,7 @@ struct ProcessesView: View {
                 sections: ProcessTableSection.make(rows: model.rows,
                                                    searchText: searchText,
                                                    sortOrder: sortOrder),
+                searchText: searchText,
                 selection: $model.selectedPID,
                 sortOrder: $sortOrder
             )
@@ -142,14 +143,18 @@ struct PendingTermination: Identifiable {
 
 private struct ProcessTableView: View {
     let sections: [ProcessTableSection]
+    /// Bolds the matched letters in the Name and PID columns, the two fields the filter searches.
+    let searchText: String
     @Binding var selection: pid_t?
     @Binding var sortOrder: [KeyPathComparator<ProcessInfoRow>]
 
     var body: some View {
         Table(of: ProcessInfoRow.self, selection: $selection, sortOrder: $sortOrder) {
-            TableColumn("Name", value: \.name)
+            TableColumn("Name", value: \.name) { row in
+                Text(MatchHighlight.attributed(row.name, query: searchText))
+            }
             TableColumn("PID", value: \.pid) { row in
-                Text(String(row.pid))
+                Text(MatchHighlight.attributed(String(row.pid), query: searchText))
             }
             TableColumn("CPU %", value: \.cpuSortKey) { row in
                 Text(row.cpuText)
