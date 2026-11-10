@@ -3,7 +3,7 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [ ] Add a regression test for the Memory graph's TimelineView lifecycle, confirming the 15 fps animation runs only while the panel is on screen and stops when it is hidden. (from: review harness)
+- [x] Add a regression test for the Memory graph's TimelineView lifecycle, confirming the 15 fps animation runs only while the panel is on screen and stops when it is hidden. (from: review harness)
 
 ## Later
 - [ ] Add a GPU utilisation/memory provider and surface it in the vitals and Performance views (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)

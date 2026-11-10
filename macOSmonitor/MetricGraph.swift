@@ -19,12 +19,16 @@ struct MetricGraph: View {
     let fillColor: Color
     let gridColor: Color
     var timeAxis: CompressedTimeAxis? = nil
+    /// Called once per animation frame of the compressed time axis. A seam for tests that
+    /// check the 15 fps animation runs only while the graph is on screen.
+    var onFrame: (() -> Void)? = nil
 
     private let gridDivisions = 4
 
     var body: some View {
         if let timeAxis {
             TimelineView(.animation(minimumInterval: 1.0 / 15)) { timeline in
+                let _ = onFrame?()
                 canvas(phase: GraphGeometry.scrollPhase(now: timeline.date,
                                                         lastSample: timeAxis.lastSample,
                                                         interval: timeAxis.sampleInterval))
