@@ -45,22 +45,16 @@ struct ProcessesView: View {
                     .disabled(row?.canTerminate != true)
             }
         }
-        .toolbar {
-            ToolbarItemGroup {
-                Button("Quit") { requestTermination(selectedRow, force: false) }
-                    .disabled(selectedRow?.canTerminate != true)
-                Button("Force Quit") { requestTermination(selectedRow, force: true) }
-                    .disabled(selectedRow?.canTerminate != true)
-            }
-            ToolbarItem {
-                Button { showInspector.toggle() } label: {
-                    Label("Toggle Inspector", systemImage: "sidebar.trailing")
-                }
-            }
-        }
+        // The Quit / Force Quit / inspector toolbar buttons live on ContentView's window
+        // toolbar: a toolbar declared here is rebuilt on every surface change, which loses
+        // the user's customization and blocks "Customize Toolbar…" altogether.
         .searchable(text: $searchText, isPresented: $searchPresented,
                     placement: .toolbar, prompt: "Filter by name or PID")
         .focusedSceneValue(\.searchPresented, $searchPresented)
+        .focusedSceneValue(\.processTermination, ProcessTerminationActions(
+            canTerminate: selectedRow?.canTerminate == true,
+            quit: { requestTermination(selectedRow, force: false) },
+            forceQuit: { requestTermination(selectedRow, force: true) }))
         .onChange(of: model.selectedPID) { model.refreshSelection() }
         .inspector(isPresented: $showInspector) {
             ProcessDetailView(model: model)
@@ -103,8 +97,8 @@ struct ProcessesView: View {
     // MARK: - Actions
 
     private func requestTermination(_ row: ProcessInfoRow?, force: Bool) {
-        guard let row, row.canTerminate else { return }
-        pendingTermination = PendingTermination(pid: row.pid, name: row.name, force: force)
+        guard let request = PendingTermination.request(for: row, force: force) else { return }
+        pendingTermination = request
     }
 
     private func performTermination(_ item: PendingTermination) {
@@ -137,6 +131,12 @@ struct PendingTermination: Identifiable {
     let pid: pid_t
     let name: String
     let force: Bool
+
+    /// The confirmation to show for `row`, or nil when there is none or we may not signal it.
+    static func request(for row: ProcessInfoRow?, force: Bool) -> PendingTermination? {
+        guard let row, row.canTerminate else { return nil }
+        return PendingTermination(pid: row.pid, name: row.name, force: force)
+    }
 }
 
 // MARK: - Table Helper View

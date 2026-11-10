@@ -69,8 +69,26 @@ struct ContentView: View {
         .frame(minWidth: 900, minHeight: 500)
         .navigationTitle("macOSmonitor")
         .environment(\.theme, theme)
-        .toolbar {
-            ToolbarItem {
+        // One customizable toolbar for the whole window (right-click → Customize Toolbar…),
+        // declared here so it survives surface changes. Item IDs are what macOS stores the
+        // user's arrangement under: don't rename them. The process buttons stay visible but
+        // disabled off the Processes surface; hiding them would rebuild the toolbar.
+        .toolbar(id: "main") {
+            ToolbarItem(id: "quit") {
+                Button("Quit") { pendingTermination = processRequest(force: false) }
+                    .disabled(!canTerminateSelection)
+            }
+            ToolbarItem(id: "forceQuit") {
+                Button("Force Quit") { pendingTermination = processRequest(force: true) }
+                    .disabled(!canTerminateSelection)
+            }
+            ToolbarItem(id: "inspector") {
+                Button { showInspector.toggle() } label: {
+                    Label("Toggle Inspector", systemImage: "sidebar.trailing")
+                }
+                .disabled(surface != .processes)
+            }
+            ToolbarItem(id: "theme") {
                 Menu {
                     Picker("Theme", selection: $themeID) {
                         ForEach(Theme.all) { option in
@@ -90,6 +108,16 @@ struct ContentView: View {
         // cancelled on every navigation.
         .task { await vitalsModel.run() }
         .task { await model.run() }
+    }
+
+    /// Quit / Force Quit act only on the Processes surface, where the selection is visible.
+    private var canTerminateSelection: Bool {
+        surface == .processes && model.selectedRow?.canTerminate == true
+    }
+
+    private func processRequest(force: Bool) -> PendingTermination? {
+        guard surface == .processes else { return nil }
+        return PendingTermination.request(for: model.selectedRow, force: force)
     }
 
     private func meterValue(_ surface: Surface) -> String {

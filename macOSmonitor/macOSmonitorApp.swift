@@ -15,6 +15,43 @@ struct macOSmonitorApp: App {
         }
         .commands {
             SearchCommands()
+            ProcessCommands()
+        }
+    }
+}
+
+/// What the Process menu can do to the focused window's selected process. Both actions
+/// only ask for confirmation; the dialog (which names the process and PID) does the rest.
+struct ProcessTerminationActions {
+    let canTerminate: Bool
+    let quit: () -> Void
+    let forceQuit: () -> Void
+}
+
+private struct ProcessTerminationKey: FocusedValueKey {
+    typealias Value = ProcessTerminationActions
+}
+
+extension FocusedValues {
+    var processTermination: ProcessTerminationActions? {
+        get { self[ProcessTerminationKey.self] }
+        set { self[ProcessTerminationKey.self] = newValue }
+    }
+}
+
+/// A Process menu with Quit Process (⌥⌘Q) and Force Quit Process (⇧⌥⌘Q), matching
+/// Activity Monitor. Enabled only on the Processes surface with a process we may signal.
+private struct ProcessCommands: Commands {
+    @FocusedValue(\.processTermination) private var actions
+
+    var body: some Commands {
+        CommandMenu("Process") {
+            Button("Quit Process") { actions?.quit() }
+                .keyboardShortcut("q", modifiers: [.command, .option])
+                .disabled(actions?.canTerminate != true)
+            Button("Force Quit Process") { actions?.forceQuit() }
+                .keyboardShortcut("q", modifiers: [.command, .option, .shift])
+                .disabled(actions?.canTerminate != true)
         }
     }
 }
