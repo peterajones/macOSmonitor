@@ -62,9 +62,9 @@ final class ProcessListModel {
         }
     }
 
-    /// Send SIGTERM (force == false) or SIGKILL (force == true) to a process.
-    func terminate(pid: pid_t, force: Bool) -> TerminationResult {
-        terminator.terminate(pid: pid, force: force)
+    /// Send `signal` (Quit, Force Quit, Pause, Resume, Hang Up) to a process.
+    func send(_ signal: ProcessSignal, to pid: pid_t) -> TerminationResult {
+        terminator.send(signal, to: pid)
     }
 
     /// Refresh `selectedDetails` for the current `selectedPID` (nil if none/denied).

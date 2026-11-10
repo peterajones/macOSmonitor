@@ -11,10 +11,10 @@ final class FakeSampler: ProcessSampling, @unchecked Sendable {
 
 final class FakeTerminator: ProcessTerminating, @unchecked Sendable {
     private(set) var lastPID: pid_t?
-    private(set) var lastForce: Bool?
+    private(set) var lastSignal: ProcessSignal?
     var result: TerminationResult = .success
-    func terminate(pid: pid_t, force: Bool) -> TerminationResult {
-        lastPID = pid; lastForce = force; return result
+    func send(_ signal: ProcessSignal, to pid: pid_t) -> TerminationResult {
+        lastPID = pid; lastSignal = signal; return result
     }
 }
 
@@ -51,15 +51,15 @@ struct ProcessListModelTests {
         #expect(model.rows.first?.name == "a")
     }
 
-    @Test func terminateForwardsSignalChoiceAndReturnsResult() async {
+    @Test func sendForwardsSignalChoiceAndReturnsResult() async {
         let fake = FakeTerminator()
         fake.result = .denied
         let model = ProcessListModel(sampler: FakeSampler(), terminator: fake)
 
-        let result = model.terminate(pid: 4321, force: true)
+        let result = model.send(.hangUp, to: 4321)
 
         #expect(fake.lastPID == 4321)
-        #expect(fake.lastForce == true)
+        #expect(fake.lastSignal == .hangUp)
         #expect(result == .denied)
     }
 

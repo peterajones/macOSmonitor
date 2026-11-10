@@ -75,11 +75,11 @@ struct ContentView: View {
         // disabled off the Processes surface; hiding them would rebuild the toolbar.
         .toolbar(id: "main") {
             ToolbarItem(id: "quit") {
-                Button("Quit") { pendingTermination = processRequest(force: false) }
+                Button("Quit") { pendingTermination = processRequest(.terminate) }
                     .disabled(!canTerminateSelection)
             }
             ToolbarItem(id: "forceQuit") {
-                Button("Force Quit") { pendingTermination = processRequest(force: true) }
+                Button("Force Quit") { pendingTermination = processRequest(.kill) }
                     .disabled(!canTerminateSelection)
             }
             ToolbarItem(id: "inspector") {
@@ -115,9 +115,10 @@ struct ContentView: View {
         surface == .processes && model.selectedRow?.canTerminate == true
     }
 
-    private func processRequest(force: Bool) -> PendingTermination? {
+    /// Quit and Force Quit both confirm, so the toolbar only ever stages a request.
+    private func processRequest(_ signal: ProcessSignal) -> PendingTermination? {
         guard surface == .processes else { return nil }
-        return PendingTermination.request(for: model.selectedRow, force: force)
+        return PendingTermination.request(for: model.selectedRow, signal: signal)
     }
 
     private func meterValue(_ surface: Surface) -> String {

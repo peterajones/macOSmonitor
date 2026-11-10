@@ -39,10 +39,17 @@ struct ProcessesView: View {
             )
             .contextMenu(forSelectionType: pid_t.self) { ids in
                 let row = ids.first.flatMap { id in model.rows.first(where: { $0.id == id }) }
-                Button("Quit") { requestTermination(row, force: false) }
+                Button(ProcessSignal.terminate.actionTitle) { requestSignal(.terminate, for: row) }
                     .disabled(row?.canTerminate != true)
-                Button("Force Quit") { requestTermination(row, force: true) }
+                Button(ProcessSignal.kill.actionTitle) { requestSignal(.kill, for: row) }
                     .disabled(row?.canTerminate != true)
+                Divider()
+                Menu("Send Signal") {
+                    ForEach(ProcessSignal.sendSignalMenu, id: \.self) { signal in
+                        Button(signal.menuTitle) { requestSignal(signal, for: row) }
+                    }
+                }
+                .disabled(row?.canTerminate != true)
             }
         }
         // The Quit / Force Quit / inspector toolbar buttons live on ContentView's window
@@ -53,8 +60,7 @@ struct ProcessesView: View {
         .focusedSceneValue(\.searchPresented, $searchPresented)
         .focusedSceneValue(\.processTermination, ProcessTerminationActions(
             canTerminate: selectedRow?.canTerminate == true,
-            quit: { requestTermination(selectedRow, force: false) },
-            forceQuit: { requestTermination(selectedRow, force: true) }))
+            request: { signal in requestSignal(signal, for: selectedRow) }))
         .onChange(of: model.selectedPID) { model.refreshSelection() }
         .inspector(isPresented: $showInspector) {
             ProcessDetailView(model: model)
@@ -65,17 +71,15 @@ struct ProcessesView: View {
             isPresented: presenting($pendingTermination),
             presenting: pendingTermination
         ) { item in
-            Button(item.force ? "Force Quit" : "Quit", role: .destructive) {
-                performTermination(item)
+            Button(item.signal.actionTitle, role: .destructive) {
+                perform(item)
             }
             Button("Cancel", role: .cancel) {}
         } message: { item in
-            Text(item.force
-                 ? "Force-quitting “\(item.name)” (PID \(item.pid)) ends it immediately; unsaved work is lost."
-                 : "“\(item.name)” (PID \(item.pid)) will be asked to quit.")
+            Text(item.signal.confirmMessage(name: item.name, pid: item.pid))
         }
         .alert(
-            "Couldn’t terminate process",
+            "Couldn’t signal process",
             isPresented: presenting($errorMessage),
             presenting: errorMessage
         ) { _ in
@@ -91,26 +95,34 @@ struct ProcessesView: View {
 
     private var confirmTitle: String {
         guard let item = pendingTermination else { return "" }
-        return item.force ? "Force Quit “\(item.name)”?" : "Quit “\(item.name)”?"
+        return item.signal.confirmTitle(name: item.name)
     }
 
     // MARK: - Actions
 
-    private func requestTermination(_ row: ProcessInfoRow?, force: Bool) {
-        guard let request = PendingTermination.request(for: row, force: force) else { return }
-        pendingTermination = request
+    /// Confirms first, except for signals that don't need it (Resume), which are sent at once.
+    private func requestSignal(_ signal: ProcessSignal, for row: ProcessInfoRow?) {
+        guard let request = PendingTermination.request(for: row, signal: signal) else { return }
+        if signal.needsConfirmation {
+            pendingTermination = request
+        } else {
+            perform(request)
+        }
     }
 
-    private func performTermination(_ item: PendingTermination) {
-        switch model.terminate(pid: item.pid, force: item.force) {
+    private func perform(_ item: PendingTermination) {
+        let verb = item.signal.actionTitle.lowercased()
+        switch model.send(item.signal, to: item.pid) {
         case .success:
-            break   // process drops off the next ~1 Hz refresh
+            break   // a quit process drops off the next ~1 Hz refresh; status updates likewise
         case .denied:
-            errorMessage = "Couldn’t terminate “\(item.name)”: permission denied."
+            errorMessage = "Couldn’t \(verb) “\(item.name)”: permission denied."
         case .noSuchProcess:
             errorMessage = "“\(item.name)” is no longer running."
+        case .refusedSelfPause:
+            errorMessage = "macOSmonitor can’t pause itself: nothing would be left to resume it."
         case .failure(let reason):
-            errorMessage = "Couldn’t terminate “\(item.name)”: \(reason)."
+            errorMessage = "Couldn’t \(verb) “\(item.name)”: \(reason)."
         }
     }
 
@@ -124,18 +136,18 @@ struct ProcessesView: View {
     }
 }
 
-/// A pending Quit/Force-Quit awaiting confirmation.
+/// A signal (Quit, Force Quit, Pause, …) awaiting confirmation.
 /// Not file-private: `ContentView` owns this state so it survives navigation.
 struct PendingTermination: Identifiable {
     let id = UUID()
     let pid: pid_t
     let name: String
-    let force: Bool
+    let signal: ProcessSignal
 
-    /// The confirmation to show for `row`, or nil when there is none or we may not signal it.
-    static func request(for row: ProcessInfoRow?, force: Bool) -> PendingTermination? {
+    /// The request for `row`, or nil when there is none or we may not signal it.
+    static func request(for row: ProcessInfoRow?, signal: ProcessSignal) -> PendingTermination? {
         guard let row, row.canTerminate else { return nil }
-        return PendingTermination(pid: row.pid, name: row.name, force: force)
+        return PendingTermination(pid: row.pid, name: row.name, signal: signal)
     }
 }
 

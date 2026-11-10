@@ -20,12 +20,11 @@ struct macOSmonitorApp: App {
     }
 }
 
-/// What the Process menu can do to the focused window's selected process. Both actions
-/// only ask for confirmation; the dialog (which names the process and PID) does the rest.
+/// What the Process menu can do to the focused window's selected process. `request` asks
+/// for confirmation (the dialog names the process and PID) for every signal but Resume.
 struct ProcessTerminationActions {
     let canTerminate: Bool
-    let quit: () -> Void
-    let forceQuit: () -> Void
+    let request: (ProcessSignal) -> Void
 }
 
 private struct ProcessTerminationKey: FocusedValueKey {
@@ -40,18 +39,26 @@ extension FocusedValues {
 }
 
 /// A Process menu with Quit Process (⌥⌘Q) and Force Quit Process (⇧⌥⌘Q), matching
-/// Activity Monitor. Enabled only on the Processes surface with a process we may signal.
+/// Activity Monitor, plus a Send Signal submenu (Pause, Resume, Hang Up). Enabled only on
+/// the Processes surface with a process we may signal.
 private struct ProcessCommands: Commands {
     @FocusedValue(\.processTermination) private var actions
 
     var body: some Commands {
         CommandMenu("Process") {
-            Button("Quit Process") { actions?.quit() }
+            Button("Quit Process") { actions?.request(.terminate) }
                 .keyboardShortcut("q", modifiers: [.command, .option])
                 .disabled(actions?.canTerminate != true)
-            Button("Force Quit Process") { actions?.forceQuit() }
+            Button("Force Quit Process") { actions?.request(.kill) }
                 .keyboardShortcut("q", modifiers: [.command, .option, .shift])
                 .disabled(actions?.canTerminate != true)
+            Divider()
+            Menu("Send Signal") {
+                ForEach(ProcessSignal.sendSignalMenu, id: \.self) { signal in
+                    Button(signal.menuTitle) { actions?.request(signal) }
+                }
+            }
+            .disabled(actions?.canTerminate != true)
         }
     }
 }
