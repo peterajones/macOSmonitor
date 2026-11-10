@@ -30,6 +30,12 @@ final class FakePortProvider: ProcessPortProviding, @unchecked Sendable {
     func ports(pid: pid_t) -> [ProcessPort] { lastPID = pid; return result }
 }
 
+final class FakeArgumentProvider: ProcessArgumentProviding, @unchecked Sendable {
+    var result: [String]?
+    private(set) var lastPID: pid_t?
+    func arguments(pid: pid_t) -> [String]? { lastPID = pid; return result }
+}
+
 @MainActor
 struct ProcessListModelTests {
     @Test func refreshOnceReplacesRowsFromSampler() async {
@@ -107,6 +113,21 @@ struct ProcessListModelTests {
         model.selectedPID = nil
         model.refreshSelection()
         #expect(model.selectedPorts.isEmpty)
+    }
+
+    @Test func refreshSelectionPublishesArgumentsAndClearsWhenNoSelection() {
+        let fake = FakeArgumentProvider()
+        fake.result = ["/bin/x", "--verbose"]
+        let model = ProcessListModel(sampler: FakeSampler(), argumentProvider: fake)
+
+        model.selectedPID = 9
+        model.refreshSelection()
+        #expect(fake.lastPID == 9)
+        #expect(model.selectedArguments == ["/bin/x", "--verbose"])
+
+        model.selectedPID = nil
+        model.refreshSelection()
+        #expect(model.selectedArguments == nil)
     }
 
     /// The loop moved to ContentView in M11, so it now outlives ProcessesView.

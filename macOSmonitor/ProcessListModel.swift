@@ -12,22 +12,27 @@ final class ProcessListModel {
     private(set) var selectedDetails: ProcessDetails?
     /// Open network sockets for the selected process; empty when none selected or denied.
     private(set) var selectedPorts: [ProcessPort] = []
+    /// argv (including argv[0]) for the selected process; nil when none selected or denied.
+    private(set) var selectedArguments: [String]?
 
     private let sampler: any ProcessSampling
     private let terminator: any ProcessTerminating
     private let detailProvider: any ProcessDetailProviding
     private let portProvider: any ProcessPortProviding
+    private let argumentProvider: any ProcessArgumentProviding
     private let interval: Duration
 
     init(sampler: any ProcessSampling = ProcessSampler(),
          terminator: any ProcessTerminating = ProcessTerminator(),
          detailProvider: any ProcessDetailProviding = ProcInfo(),
          portProvider: any ProcessPortProviding = ProcInfo(),
+         argumentProvider: any ProcessArgumentProviding = ProcInfo(),
          interval: Duration = .seconds(1)) {
         self.sampler = sampler
         self.terminator = terminator
         self.detailProvider = detailProvider
         self.portProvider = portProvider
+        self.argumentProvider = argumentProvider
         self.interval = interval
     }
 
@@ -60,10 +65,11 @@ final class ProcessListModel {
         selectedDetails = selectedPID.flatMap { detailProvider.details(pid: $0) }
     }
 
-    /// Refresh all selection-scoped inspector data (details + ports) for `selectedPID`.
+    /// Refresh all selection-scoped inspector data (details, ports, arguments) for `selectedPID`.
     func refreshSelection() {
         refreshDetails()
         selectedPorts = selectedPID.map { portProvider.ports(pid: $0) } ?? []
+        selectedArguments = selectedPID.flatMap { argumentProvider.arguments(pid: $0) }
     }
 
     /// The selected process's latest sampled row (nil when nothing is selected or it has

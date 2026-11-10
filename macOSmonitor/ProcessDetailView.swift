@@ -33,6 +33,24 @@ struct ProcessDetailView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                Section("Arguments") {
+                    // argv[0] is dropped: the Path row already names the executable.
+                    if let arguments = model.selectedArguments {
+                        if arguments.count <= 1 {
+                            Text("No arguments.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(Array(arguments.dropFirst().enumerated()), id: \.offset) { _, argument in
+                                Text(argument.isEmpty ? "\"\"" : argument)
+                                    .monospaced()
+                                    .textSelection(.enabled)
+                            }
+                        }
+                    } else {
+                        Text("Arguments unavailable (permission denied).")
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Section("Ports") {
                     if model.selectedPorts.isEmpty {
                         Text("No open ports.")
