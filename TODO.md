@@ -3,7 +3,6 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [x] Highlight the matched substring in search results (from: docs/superpowers/specs/2026-07-05-table-search-design.md)
 - [ ] Add keyboard shortcuts for Quit/Force Quit and toolbar customization (from: docs/superpowers/specs/2026-07-02-process-termination-design.md)
 
 ## Later
