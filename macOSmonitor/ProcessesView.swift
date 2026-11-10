@@ -160,25 +160,33 @@ private struct ProcessTableView: View {
     @Binding var selection: pid_t?
     @Binding var sortOrder: [KeyPathComparator<ProcessInfoRow>]
 
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         Table(of: ProcessInfoRow.self, selection: $selection, sortOrder: $sortOrder) {
             TableColumn("Name", value: \.name) { row in
                 Text(MatchHighlight.attributed(row.name, query: searchText))
+                    .themedCell(theme, selected: row.pid == selection)
             }
             TableColumn("PID", value: \.pid) { row in
                 Text(MatchHighlight.attributed(String(row.pid), query: searchText))
+                    .themedCell(theme, selected: row.pid == selection)
             }
             TableColumn("CPU %", value: \.cpuSortKey) { row in
                 Text(row.cpuText)
                     .monospacedDigit()
+                    .themedCell(theme, selected: row.pid == selection)
             }
             TableColumn("CPU Time", value: \.cpuTimeSortKey) { row in
                 Text(row.cpuTimeText)
                     .monospacedDigit()
+                    .themedCell(theme, selected: row.pid == selection)
             }
             TableColumn("Memory", value: \.memSortKey) { row in
                 Text(row.memoryText)
                     .monospacedDigit()
+                    .themedCell(theme, selected: row.pid == selection)
             }
         } rows: {
             ForEach(sections) { section in
@@ -188,6 +196,27 @@ private struct ProcessTableView: View {
                     }
                 }
             }
+        }
+        // The System theme keeps the native table. Fixed (VFD) palettes paint the panel
+        // background, drop the light alternating stripes, and force dark appearance so the
+        // header, section headers and scrollers — which can't be coloured — match.
+        .scrollContentBackground(theme.usesSystemColors ? .automatic : .hidden)
+        .background(theme.usesSystemColors ? Color.clear : theme.panelBackground)
+        .alternatingRowBackgrounds(theme.usesSystemColors ? .enabled : .disabled)
+        .environment(\.colorScheme, theme.forcedColorScheme ?? colorScheme)
+    }
+}
+
+private extension View {
+    /// Phosphor-coloured text for a fixed palette. Left alone for the System theme, and in
+    /// the selected row, where the system's white-on-blue stays legible and a green or
+    /// amber accent on blue would not.
+    @ViewBuilder
+    func themedCell(_ theme: Theme, selected: Bool) -> some View {
+        if theme.usesSystemColors || selected {
+            self
+        } else {
+            foregroundStyle(theme.primaryText)
         }
     }
 }

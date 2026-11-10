@@ -81,6 +81,11 @@ struct Theme: Identifiable, Equatable, Sendable {
         return (Theme.systemMetricSamples[metric] ?? RGB(r: 0.5, g: 0.5, b: 0.5)).color
     }
 
+    /// The appearance to force on native controls that the palette can't colour directly
+    /// (the process table's header, section headers and scrollers). Fixed palettes are dark,
+    /// so they force dark; nil leaves the System theme following the user's appearance.
+    var forcedColorScheme: ColorScheme? { usesSystemColors ? nil : .dark }
+
     /// The area fill under a metric's graph line: the same hue as `color(for:)`, faint.
     /// Fixed palettes are monochrome, so their `graphFill` already matches.
     func fillColor(for metric: Metric) -> Color {

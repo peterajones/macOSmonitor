@@ -1,4 +1,5 @@
 import Testing
+import SwiftUI
 @testable import macOSmonitor
 
 struct ThemeTests {
@@ -48,5 +49,14 @@ struct ThemeTests {
     @Test func systemThemeIsTheOnlyOneUsingSemanticColours() {
         #expect(Theme.system.usesSystemColors)
         #expect(Theme.all.filter(\.usesSystemColors).count == 1)
+    }
+
+    /// The process table forces this scheme so its uncolourable header and scrollers match
+    /// the palette: dark for every fixed (dark) theme, untouched for System.
+    @Test func onlyFixedThemesForceDarkAppearance() {
+        #expect(Theme.system.forcedColorScheme == nil)
+        for theme in Theme.all where !theme.usesSystemColors {
+            #expect(theme.forcedColorScheme == .dark, "\(theme.name)")
+        }
     }
 }
