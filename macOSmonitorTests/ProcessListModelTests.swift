@@ -30,10 +30,10 @@ final class FakePortProvider: ProcessPortProviding, @unchecked Sendable {
     func ports(pid: pid_t) -> [ProcessPort] { lastPID = pid; return result }
 }
 
-final class FakeArgumentProvider: ProcessArgumentProviding, @unchecked Sendable {
-    var result: [String]?
+final class FakeCommandLineProvider: ProcessCommandLineProviding, @unchecked Sendable {
+    var result: ProcessCommandLine?
     private(set) var lastPID: pid_t?
-    func arguments(pid: pid_t) -> [String]? { lastPID = pid; return result }
+    func commandLine(pid: pid_t) -> ProcessCommandLine? { lastPID = pid; return result }
 }
 
 @MainActor
@@ -115,19 +115,20 @@ struct ProcessListModelTests {
         #expect(model.selectedPorts.isEmpty)
     }
 
-    @Test func refreshSelectionPublishesArgumentsAndClearsWhenNoSelection() {
-        let fake = FakeArgumentProvider()
-        fake.result = ["/bin/x", "--verbose"]
-        let model = ProcessListModel(sampler: FakeSampler(), argumentProvider: fake)
+    @Test func refreshSelectionPublishesCommandLineAndClearsWhenNoSelection() {
+        let fake = FakeCommandLineProvider()
+        let commandLine = ProcessCommandLine(arguments: ["/bin/x", "--verbose"], environment: ["A=1"])
+        fake.result = commandLine
+        let model = ProcessListModel(sampler: FakeSampler(), commandLineProvider: fake)
 
         model.selectedPID = 9
         model.refreshSelection()
         #expect(fake.lastPID == 9)
-        #expect(model.selectedArguments == ["/bin/x", "--verbose"])
+        #expect(model.selectedCommandLine == commandLine)
 
         model.selectedPID = nil
         model.refreshSelection()
-        #expect(model.selectedArguments == nil)
+        #expect(model.selectedCommandLine == nil)
     }
 
     /// The loop moved to ContentView in M11, so it now outlives ProcessesView.
