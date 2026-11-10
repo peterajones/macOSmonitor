@@ -35,8 +35,10 @@ defaults this to MainActor, which breaks the design).
 
 **Providers behind protocols.** Every raw syscall / IOKit / Mach read is isolated behind a
 small `Sendable` protocol (`HostStatsProviding`, `NetworkStatsProviding`, `BatteryStatsProviding`,
-`DiskStatsProviding`, `ProcInfoProviding`) with a real struct and a test fake. This is what
-makes the samplers testable — keep it when adding a data source.
+`DiskStatsProviding`, `ProcInfoProviding`; for the inspector `ProcessDetailProviding`,
+`ProcessPortProviding`, `ProcessCommandLineProviding`; and `ProcessTerminating`, which sends every
+`ProcessSignal`) with a real struct and a test fake. This is what makes the samplers and models
+testable — keep it when adding a data source.
 
 **Samplers are `actor`s**, take an injected `now: () -> UInt64` clock so rate arithmetic is
 testable, and guard every counter delta (counters wrap and devices reset; unsigned subtraction
@@ -53,6 +55,11 @@ Doing that has caused a "frozen panel" regression here more than once.
 `ProcessesView` sits in one branch of a detail-pane `switch`, so navigating away changes
 structural identity and SwiftUI destroys any `@State` declared locally. Sort order and search
 text would silently reset on every return trip. Keep them upstairs and pass bindings.
+
+The same goes for the **toolbar**: it is one customizable `.toolbar(id: "main")` on `ContentView`.
+A toolbar declared on `ProcessesView` is rebuilt on every surface change, which removes
+"Customize Toolbar…" entirely and forgets the user's arrangement. Process buttons stay in the
+window toolbar and are disabled off the Processes surface; don't move them back down.
 
 **`MeterBar` is the one meter component** (Summary strip, `StatCard`, sidebar). It draws 20
 fixed segments of 5% each, lit by rounding *up* so any non-zero reading shows. Layout maths is
@@ -111,7 +118,9 @@ anything by deleting the code it guards and watching it fail.
   the table sorted by CPU% *ascending* (which clusters churning 0%-CPU helpers), selecting a row
   and waiting ~30s used to leave the highlight in place while the underlying process changed; the
   inspector followed the new PID. Hand-checked on 2026-11-09 (Xcode 27, macOS 27.2, sectioned
-  table): the highlight and inspector PID stayed put. No commit targeted the cause, so it may have
+  table): the highlight and inspector PID stayed put. Re-checked by Peter on 2026-11-10 at
+  `2f64766`, after that day's cell-content changes (bold search matches, themed cells): still
+  passes. No commit targeted the cause, so it may have
   gone away with the toolchain. **Safety: if it returns, acting on a stale highlight can Force-Quit
   the wrong process.** Re-run this repro after changing how `Table` rows or selection work; full
   steps in the body of commit `cd69ee7`.
