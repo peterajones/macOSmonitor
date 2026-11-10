@@ -3,7 +3,6 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [x] Support sending arbitrary signals (SIGSTOP/SIGCONT/SIGHUP) (from: docs/superpowers/specs/2026-07-02-process-termination-design.md)
 - [ ] Apply the theme to the process table (from: docs/superpowers/specs/2026-08-26-performance-view-design.md)
 - [ ] Add per-core history traces to the CPU core grid (from: docs/superpowers/specs/2026-08-26-performance-view-design.md)
 
