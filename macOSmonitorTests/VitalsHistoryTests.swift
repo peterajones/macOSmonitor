@@ -104,4 +104,23 @@ struct VitalsHistoryTests {
         #expect(history.perCore.map(\.values) == [[10], [20]])
         #expect(history.cpu.values.count == 2)   // the overall series still advanced
     }
+
+    /// GPU series (review-harness follow-up): a 60-sample window like the others, oldest
+    /// dropped first, with ticks lacking GPU statistics recorded as 0 so it stays index-aligned.
+    @Test func gpuSeriesKeepsTheLast60AndZeroFillsGaps() {
+        var history = VitalsHistory(capacity: 60)
+        for tick in 1...61 {
+            var v = vitals(cpu: Double(tick), memory: 1, netIn: 0, netOut: 0, diskRead: 0, diskWrite: 0)
+            // Every 10th tick has no GPU statistics.
+            v.gpu = tick % 10 == 0 ? nil : GPUInfo(utilizationPercent: Double(tick), memoryInUseBytes: nil)
+            history.append(v)
+        }
+        #expect(history.gpu.values.count == 60)
+        #expect(history.gpu.values.first == 2)                  // tick 1 dropped
+        #expect(history.gpu.values.last == 61)
+        #expect(history.gpu.values[8] == 0)                     // tick 10: no statistics → 0
+        #expect(history.gpu.values.count == history.cpu.values.count)
+        #expect(zip(history.gpu.values, history.cpu.values).allSatisfy { $0 == $1 || $0 == 0 })
+    }
 }
+

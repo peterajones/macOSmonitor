@@ -15,7 +15,7 @@ struct macOSmonitorApp: App {
     /// them for the whole app. Its loop starts here, once, rather than in a view's `.task`,
     /// because the menu-bar label needs it whether or not any window is open.
     @State private var vitalsModel: VitalsModel
-    @AppStorage("showMenuBarExtra") private var showsMenuBarExtra = true
+    @AppStorage(MenuBarSettings.key) private var showsMenuBarExtra = MenuBarSettings.shownByDefault
 
     init() {
         let model = VitalsModel()
@@ -44,13 +44,22 @@ struct macOSmonitorApp: App {
     }
 }
 
+/// Where the menu-bar item's on/off choice is stored. Named so tests can pin the key and the
+/// default: renaming the key would silently reset everyone's choice.
+enum MenuBarSettings {
+    static let key = "showMenuBarExtra"
+    static let shownByDefault = true
+    /// The View menu item that toggles it.
+    static let menuTitle = "Show in Menu Bar"
+}
+
 /// View ▸ Show in Menu Bar.
 private struct MenuBarCommands: Commands {
     @Binding var showsMenuBarExtra: Bool
 
     var body: some Commands {
         CommandGroup(before: .toolbar) {
-            Toggle("Show in Menu Bar", isOn: $showsMenuBarExtra)
+            Toggle(MenuBarSettings.menuTitle, isOn: $showsMenuBarExtra)
         }
     }
 }

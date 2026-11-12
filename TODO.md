@@ -3,9 +3,9 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [ ] Add tests for the GPU series in VitalsHistory: the 60 s window and the zero-fill on ticks without statistics that keeps series index-aligned with the other metrics. (from: review harness)
-- [ ] Add a regression test for the Open Files section collapsing when the selected process changes, mirroring the existing Environment-collapse test. (from: review harness)
-- [ ] Add tests for the menu-bar panel's behaviour that sits outside MenuBarReadout: the showMenuBarExtra toggle and the GPU and Battery meters appearing only when the Mac reports them. (from: review harness)
+- [x] Add tests for the GPU series in VitalsHistory: the 60 s window and the zero-fill on ticks without statistics that keeps series index-aligned with the other metrics. (from: review harness)
+- [x] Add a regression test for the Open Files section collapsing when the selected process changes, mirroring the existing Environment-collapse test. (from: review harness)
+- [x] Add tests for the menu-bar panel's behaviour that sits outside MenuBarReadout: the showMenuBarExtra toggle and the GPU and Battery meters appearing only when the Mac reports them. (from: review harness)
 
 ## Later
 - [ ] Show per-process network I/O; needs the private NetworkStatistics framework (from: docs/superpowers/specs/2026-07-02-process-detail-inspector-design.md)

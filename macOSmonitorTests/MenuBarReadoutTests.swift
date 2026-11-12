@@ -1,4 +1,5 @@
 import Testing
+import AppKit
 @testable import macOSmonitor
 
 struct MenuBarReadoutTests {
@@ -37,5 +38,25 @@ struct MenuBarReadoutTests {
         #expect(fractions["Battery"] == 0.8)
         #expect(fractions["Network"] == .some(nil))
         #expect(MenuBarReadout.rows(full).map(\.metric) == [.cpu, .gpu, .memory, .network, .battery])
+    }
+}
+
+/// The menu-bar toggle (review-harness follow-up). The test host shares Peter's preferences, so
+/// these check declared defaults and the live menu, and never write the setting.
+@MainActor
+struct MenuBarSettingsTests {
+    @Test func storedKeyAndDefaultArePinned() {
+        #expect(MenuBarSettings.key == "showMenuBarExtra")
+        #expect(MenuBarSettings.shownByDefault)
+    }
+
+    @Test func viewMenuOffersTheToggle() async throws {
+        func viewMenuTitles() -> [String] {
+            NSApp.mainMenu?.items.first { $0.title == "View" }?.submenu?.items.map(\.title) ?? []
+        }
+        for _ in 0..<20 where !viewMenuTitles().contains(MenuBarSettings.menuTitle) {
+            try await Task.sleep(for: .milliseconds(100))   // SwiftUI builds the menu after launch
+        }
+        #expect(viewMenuTitles().contains(MenuBarSettings.menuTitle), "View menu: \(viewMenuTitles())")
     }
 }
