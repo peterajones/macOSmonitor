@@ -58,12 +58,21 @@ struct ProcInfo: ProcInfoProviding {
         return ProcTaskSample(residentBytes: info.pti_resident_size, cpuTimeNanos: nanos)
     }
 
-    /// Best-effort process name. `proc_name` reads the BSD "comm" field, which is
-    /// generally available even for other users' processes (unlike task info).
+    /// Best-effort process name. `proc_name` reads the BSD "comm" field, but macOS denies it
+    /// for about a quarter of processes (WindowServer, installd, cloudd…) whose executable
+    /// path is still readable, so those are named from the path rather than shown as "(pid N)".
     func name(pid: pid_t) -> String {
         var buffer = [CChar](repeating: 0, count: Int(2 * MAXCOMLEN))
         let length = proc_name(pid, &buffer, UInt32(buffer.count))
-        if length > 0 { return String(cBuffer: buffer) }
+        return Self.displayName(procName: length > 0 ? String(cBuffer: buffer) : nil,
+                                path: length > 0 ? nil : path(pid: pid), pid: pid)
+    }
+
+    /// The name to show: `proc_name` when readable, else the executable's file name, else
+    /// "(pid N)". Pure, so the fallback order is testable.
+    static func displayName(procName: String?, path: String?, pid: pid_t) -> String {
+        if let procName, !procName.isEmpty { return procName }
+        if let file = path?.split(separator: "/").last, !file.isEmpty { return String(file) }
         return "(pid \(pid))"
     }
 
