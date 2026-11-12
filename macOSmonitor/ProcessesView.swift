@@ -195,6 +195,11 @@ private struct ProcessTableView: View {
                     .monospacedDigit()
                     .themedCell(theme, selected: row.pid == selection)
             }
+            TableColumn("GPU %", value: \.gpuSortKey) { row in
+                Text(row.gpuText)
+                    .monospacedDigit()
+                    .themedCell(theme, selected: row.pid == selection)
+            }
             TableColumn("Memory", value: \.memSortKey) { row in
                 Text(row.memoryText)
                     .monospacedDigit()

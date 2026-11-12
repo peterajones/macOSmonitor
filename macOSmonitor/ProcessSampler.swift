@@ -10,6 +10,8 @@ protocol ProcessSampling: Sendable {
 actor ProcessSampler: ProcessSampling {
     private let source: any ProcInfoProviding
     private let apps: any RegularAppProviding
+    private let gpu: any ProcessGPUUsageProviding
+    private var previousGPU: [pid_t: UInt64]?
     private let now: @Sendable () -> UInt64
     private var previousCPU: [pid_t: UInt64] = [:]   // pid -> cpuTimeNanos last tick
     private var lastWallNanos: UInt64?
@@ -18,9 +20,11 @@ actor ProcessSampler: ProcessSampling {
 
     init(source: any ProcInfoProviding = ProcInfo(),
          apps: any RegularAppProviding = RegularApps(),
+         gpu: any ProcessGPUUsageProviding = ProcessGPUUsage(),
          now: @escaping @Sendable () -> UInt64 = { DispatchTime.now().uptimeNanoseconds }) {
         self.source = source
         self.apps = apps
+        self.gpu = gpu
         self.now = now
     }
 
@@ -28,6 +32,7 @@ actor ProcessSampler: ProcessSampling {
         let wall = now()
         let wallDelta = lastWallNanos.map { wall &- $0 } ?? 0
         let appPIDs = apps.regularAppPIDs()
+        let gpuTimes = gpu.gpuTimes()
 
         var rows: [ProcessInfoRow] = []
         var currentCPU: [pid_t: UInt64] = [:]
@@ -57,6 +62,22 @@ actor ProcessSampler: ProcessSampling {
                                        isApplication: appPIDs.contains(pid), uid: uid,
                                            user: user, path: path))
         }
+
+        // GPU columns: a process's GPU time this tick, and its share of the interval. A counter
+        // that went backwards (a client closed, so a summed total dropped) reads 0, not a trap.
+        if let gpuTimes {
+            for index in rows.indices {
+                let pid = rows[index].pid
+                let time = gpuTimes[pid] ?? 0
+                rows[index].gpuTimeNanos = time
+                if let previous = previousGPU, wallDelta > 0 {
+                    let before = previous[pid] ?? 0
+                    let delta = time >= before ? time - before : 0
+                    rows[index].gpuPercent = min(100.0 * Double(delta) / Double(wallDelta), 100)
+                }
+            }
+        }
+        previousGPU = gpuTimes
 
         previousCPU = currentCPU
         lastWallNanos = wall

@@ -17,6 +17,11 @@ struct ProcessInfoRow: Identifiable, Hashable, Sendable {
     var user: String? = nil
     /// Executable path, for `path:` searches; nil when it couldn't be read.
     var path: String? = nil
+    /// Share of the last interval this process kept the GPU busy, 0–100; nil when unknown
+    /// (no baseline yet, or GPU usage isn't readable on this Mac).
+    var gpuPercent: Double? = nil
+    /// Cumulative GPU time in nanoseconds; nil when unknown.
+    var gpuTimeNanos: UInt64? = nil
 
     var id: pid_t { pid }
 
@@ -50,6 +55,11 @@ struct ProcessInfoRow: Identifiable, Hashable, Sendable {
     }
 
     var cpuTimeSortKey: UInt64 { cpuTimeNanos ?? 0 }
+
+    var gpuSortKey: Double { gpuPercent ?? -1 }
+
+    /// GPU% formatted like CPU%, or an em dash when unknown.
+    var gpuText: String { gpuPercent.map { String(format: "%.1f", $0) } ?? "—" }
 
     /// Whether this row matches a search (see `ProcessQuery` for the syntax). Blank matches
     /// all. Parses on every call: when filtering many rows, parse one `ProcessQuery` instead.
