@@ -51,3 +51,41 @@ struct MatchHighlightTests {
         #expect(attributed.runs.first?.inlinePresentationIntent == nil)
     }
 }
+
+/// Review-harness follow-up: highlighting driven by a parsed search, end to end from the
+/// search text to the bold runs a table cell shows.
+struct FieldQueryHighlightTests {
+    private func bold(_ text: String, _ terms: [String]) -> [String] {
+        let attributed = MatchHighlight.attributed(text, terms: terms)
+        return attributed.runs.filter { $0.inlinePresentationIntent == .stronglyEmphasized }
+            .map { String(attributed[$0.range].characters) }
+    }
+
+    /// A quoted phrase bolds as one run, space included; unquoted, the words bold separately.
+    @Test func quotedPhraseBoldsAsOneRun() {
+        let quoted = ProcessQuery(#""google chrome""#)
+        #expect(bold("Google Chrome Helper", quoted.nameHighlights) == ["Google Chrome"])
+        let words = ProcessQuery("google chrome")
+        #expect(bold("Google Chrome Helper", words.nameHighlights) == ["Google", "Chrome"])
+    }
+
+    @Test func nameFieldBoldsInTheNameColumnOnly() {
+        let query = ProcessQuery("name:chrome")
+        #expect(bold("Google Chrome", query.nameHighlights) == ["Chrome"])
+        #expect(query.pidHighlights(for: 771).isEmpty)
+    }
+
+    /// user: and path: match fields the table doesn't show, so they bold nothing; the row is
+    /// there because of them, not because of its name.
+    @Test func userAndPathBoldNothingInTheTable() {
+        let query = ProcessQuery(#"user:root path:"/System/Library""#)
+        #expect(query.nameHighlights.isEmpty)
+        #expect(query.pidHighlights(for: 1).isEmpty)
+    }
+
+    @Test func pidFieldBoldsTheWholePIDOnlyWhenItIsThatProcess() {
+        let query = ProcessQuery("pid:771")
+        #expect(bold("771", query.pidHighlights(for: 771)) == ["771"])
+        #expect(bold("7712", query.pidHighlights(for: 7712)).isEmpty)
+    }
+}

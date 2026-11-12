@@ -99,9 +99,13 @@ protocol BatteryHealthProviding: Sendable {
 }
 
 struct SmartBattery: BatteryHealthProviding {
+    /// Looks up a registry class's properties. The real registry by default; injectable so
+    /// the battery → pack fallback can be tested without a battery.
+    var properties: @Sendable (_ className: String) -> [String: Any]? = { SmartBattery.properties(ofFirst: $0) }
+
     func read() -> BatteryHealth? {
-        guard let battery = Self.properties(ofFirst: "AppleSmartBattery") else { return nil }
-        let pack = Self.properties(ofFirst: "AppleSmartBatteryPack")
+        guard let battery = properties("AppleSmartBattery") else { return nil }
+        let pack = properties("AppleSmartBatteryPack")
         return BatteryHealth(sources: [battery] + (pack.map { [$0] } ?? []))
     }
 

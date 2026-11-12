@@ -236,3 +236,75 @@ struct BatterySurfaceTests {
         #expect(Surface.battery.metric == .battery)
     }
 }
+
+/// Review-harness follow-ups: the registry fallback without hardware, and history edges.
+struct BatteryFallbackAndHistoryEdgeTests {
+    private let battery: [String: Any] = [
+        "CycleCount": NSNumber(value: 97),
+        "BatteryData": ["DesignCapacity": NSNumber(value: 6249)] as [String: Any],
+    ]
+    private let pack: [String: Any] = [
+        "BatteryData": ["Temperature": NSNumber(value: 3189),
+                        "NominalChargeCapacity": NSNumber(value: 5389)] as [String: Any],
+    ]
+
+    private func reader(_ classes: [String: [String: Any]]) -> SmartBattery {
+        nonisolated(unsafe) let table = classes
+        return SmartBattery(properties: { table[$0] })
+    }
+
+    /// macOS 27: temperature and full-charge capacity only on the pack node.
+    @Test func readerFillsMissingKeysFromThePackNode() throws {
+        let health = try #require(reader(["AppleSmartBattery": battery, "AppleSmartBatteryPack": pack]).read())
+        #expect(health.temperatureText == "31.9 °C")
+        #expect(health.maximumCapacityText == "86%")       // 5389 from the pack ÷ 6249 from the battery
+    }
+
+    @Test func readerWorksWithoutAPackNode() throws {
+        let health = try #require(reader(["AppleSmartBattery": battery]).read())
+        #expect(health.cycleCount == 97)
+        #expect(health.temperatureCelsius == nil)
+    }
+
+    /// A pack node alone isn't a battery the app can describe: no cycle count, no reading.
+    @Test func noBatteryNodeMeansNoReading() {
+        #expect(reader(["AppleSmartBatteryPack": pack]).read() == nil)
+        #expect(reader([:]).read() == nil)
+    }
+
+    private let t0 = Date(timeIntervalSinceReferenceDate: 800_000_000)
+    private func sample(_ seconds: TimeInterval, power: Bool = false) -> BatteryHistory.Sample {
+        .init(date: t0.addingTimeInterval(seconds), percent: 50, onPower: power)
+    }
+
+    /// A sample exactly 24 hours old is kept; once it is older, it is dropped.
+    @Test func pruningKeepsTheFull24HourWindow() {
+        var history = BatteryHistory()
+        history.record(sample(0))
+        history.record(sample(120))
+        history.record(sample(BatteryHistory.window))             // t0 is exactly 24 h old: kept
+        #expect(history.samples.first?.date == t0)
+        history.record(sample(BatteryHistory.window + 60))        // t0 now 24 h + 1 min: dropped;
+        #expect(history.samples.first?.date == t0.addingTimeInterval(120))   // 120 s is 23 h 59 m old
+    }
+
+    private let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
+    private let size = CGSize(width: 480, height: 200)
+    private func at(hoursAgo: Double, power: Bool) -> BatteryHistory.Sample {
+        .init(date: now.addingTimeInterval(-hoursAgo * 3600), percent: 50, onPower: power)
+    }
+
+    /// One bar per on-power stretch: a segment on power throughout is one bar from its first
+    /// sample to its last, and two on-power segments either side of a gap stay two bars.
+    @Test func onPowerBarsCoverWholeSegmentsAndNeverBridgeGaps() {
+        let segments = [[at(hoursAgo: 12, power: true), at(hoursAgo: 9, power: true)],
+                        [at(hoursAgo: 6, power: true), at(hoursAgo: 3, power: true)]]
+        #expect(BatteryGraphGeometry.onPowerSpans(segments, now: now, in: size) == [240...300, 360...420])
+    }
+
+    /// Plugging in mid-segment starts the bar at that sample, not at the segment's start.
+    @Test func barStartsWherePowerWasConnected() {
+        let segments = [[at(hoursAgo: 12, power: false), at(hoursAgo: 6, power: true), at(hoursAgo: 0, power: true)]]
+        #expect(BatteryGraphGeometry.onPowerSpans(segments, now: now, in: size) == [360...480])
+    }
+}
