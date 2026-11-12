@@ -14,9 +14,9 @@ struct MeterBar: View {
     let offColor: Color
 
     /// 20 segments of 5% each.
-    static let segmentCount = 20
+    nonisolated static let segmentCount = 20
     /// Space between adjacent segments, in points.
-    static let segmentGap: CGFloat = 1
+    nonisolated static let segmentGap: CGFloat = 1
 
     /// Clamps to 0...1, mapping non-finite input to 0 so a bad fraction can never
     /// produce a negative, infinite, or NaN frame.
@@ -38,7 +38,9 @@ struct MeterBar: View {
     /// The segment rectangles for a meter of `size`, in lighting order: index 0 is
     /// the bottom segment of a vertical meter, or the leftmost of a horizontal one.
     /// Empty when the meter is too small to fit the gaps.
-    static func segmentRects(in size: CGSize, orientation: Orientation) -> [CGRect] {
+    // nonisolated: pure layout maths. As a static member of a View it would otherwise be
+    // main-actor-only in Swift 6, and the tests call it from a nonisolated context.
+    nonisolated static func segmentRects(in size: CGSize, orientation: Orientation) -> [CGRect] {
         let count = segmentCount
         let length = orientation == .horizontal ? size.width : size.height
         let segmentLength = (length - segmentGap * CGFloat(count - 1)) / CGFloat(count)

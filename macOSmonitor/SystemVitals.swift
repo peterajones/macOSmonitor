@@ -205,7 +205,9 @@ struct HostStats: HostStatsProviding {
             }
         }
         guard result == KERN_SUCCESS else { return nil }
-        let page = UInt64(vm_page_size)
+        // getpagesize(), not the C global vm_page_size: Swift 6 rejects reading a mutable
+        // C global as unsafe shared state. Both are 16 KB on Apple Silicon.
+        let page = UInt64(getpagesize())
         let used = (UInt64(stats.active_count) + UInt64(stats.wire_count)
                     + UInt64(stats.compressor_page_count)) * page
         // "Cached" is file-backed memory, which the system can drop and re-read from disk.

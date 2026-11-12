@@ -84,14 +84,14 @@ extension ProcInfo: ProcessPortProviding {
         var a = addr
         var buffer = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
         guard inet_ntop(AF_INET, &a, &buffer, socklen_t(buffer.count)) != nil else { return nil }
-        return String(cString: buffer)
+        return String(cBuffer: buffer)
     }
 
     private static func ipv6(_ addr: in6_addr) -> String? {
         var a = addr
         var buffer = [CChar](repeating: 0, count: Int(INET6_ADDRSTRLEN))
         guard inet_ntop(AF_INET6, &a, &buffer, socklen_t(buffer.count)) != nil else { return nil }
-        return String(cString: buffer)
+        return String(cBuffer: buffer)
     }
 
     /// Wildcard (0.0.0.0 / ::) renders as "*".

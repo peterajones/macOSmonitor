@@ -74,7 +74,7 @@ struct NetworkStats: NetworkStatsProviding {
     private static func name(ofIndex index: UInt16) -> String? {
         var buffer = [CChar](repeating: 0, count: Int(IF_NAMESIZE))
         guard if_indextoname(UInt32(index), &buffer) != nil else { return nil }
-        return String(cString: buffer)
+        return String(cBuffer: buffer)
     }
 
     /// The ports System Settings lists, by BSD name. Utun, AWDL and the like aren't ports.
