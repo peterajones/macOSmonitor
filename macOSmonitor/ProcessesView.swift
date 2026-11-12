@@ -30,7 +30,7 @@ struct ProcessesView: View {
         @Bindable var model = model   // enables $model.selectedPID binding
 
         VStack(spacing: 0) {
-            SystemVitalsView(vitals: vitalsModel.vitals)
+            SystemVitalsView(vitals: vitalsModel.vitals, thermal: vitalsModel.thermal)
             Divider()
             ProcessFilterBar(preset: $filterPreset,
                              hidesSystem: $hidesSystemProcesses,

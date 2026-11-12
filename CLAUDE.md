@@ -107,6 +107,11 @@ anything by deleting the code it guards and watching it fail.
   truth; if it compiles, the code is fine.
 - **Warning greps need a clean build.** `xcodebuild` only emits warnings for files it actually
   recompiled, so an incremental run silently under-reports. Don't claim "zero warnings" from one.
+- **A `static` on a SwiftUI `View` is main-actor-only in Swift 6, and calling it off the main
+  actor can TRAP AT RUN TIME with no compile warning** (`dispatch_assert_queue` in a crash report).
+  It crashed the test host mid-run, failing every test still queued in it at 0.000 s. Mark pure
+  helpers on views `nonisolated` (see `SystemVitalsView.thermalText`, `MeterBar.segmentRects`).
+  Many 0.000 s failures at once means a host crash: read `~/Library/Logs/DiagnosticReports/`.
 - **Count test results with an UNANCHORED grep.** Parallel test output interleaves and can split a
   result line, so `grep -cE '^Test case .* passed'` under-reports. Use `grep -c "' passed on '"`.
 - **`defaults` does NOT reach this app's preferences.** It resolves the domain to a container path

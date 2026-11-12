@@ -21,6 +21,7 @@ struct macOSmonitorApp: App {
         let model = VitalsModel()
         _vitalsModel = State(initialValue: model)
         Task { await model.run() }
+        Task { await model.runThermal() }
     }
 
     var body: some Scene {
