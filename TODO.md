@@ -3,8 +3,6 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [x] Name processes from their executable's path when proc_name is denied: 226 of 790 processes (WindowServer, installd, cloudd…) show as "(pid N)" though their paths are readable (from: found 2026-11-12 while testing per-process GPU)
-- [x] Add per-thread CPU time to the inspector, with the process's GPU time (from: docs/superpowers/specs/2026-07-05-cpu-time-column-design.md)
 - [ ] Show per-process disk I/O and energy in the inspector for the user's own processes (from: docs/superpowers/specs/2026-07-02-process-detail-inspector-design.md)
 
 ## Later
