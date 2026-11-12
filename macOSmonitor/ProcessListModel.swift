@@ -39,6 +39,13 @@ final class ProcessListModel {
     var isThreadsExpanded = false
     /// The selected process's threads, busiest first; nil when none selected or denied.
     private(set) var selectedThreads: [ThreadInfo]?
+    /// Cumulative disk I/O and energy for the selected process; nil when none selected or denied.
+    private(set) var selectedUsage: ProcessResourceUsage?
+    /// Per-second rates since the previous tick; nil on the first tick after a selection change.
+    private(set) var selectedUsageRates: ProcessUsageRates?
+    /// The reading the rates are measured from, tagged with its process so a new selection
+    /// never takes a rate against another process's counters.
+    private var lastUsage: (pid: pid_t, usage: ProcessResourceUsage, nanos: UInt64)?
     /// Detail for the selected process; nil when nothing selected or access is denied.
     private(set) var selectedDetails: ProcessDetails?
     /// Open network sockets for the selected process; empty when none selected or denied.
@@ -56,6 +63,8 @@ final class ProcessListModel {
     private let priorityProvider: any ProcessPriorityProviding
     private let fileProvider: any ProcessFileProviding
     private let threadProvider: any ProcessThreadProviding
+    private let usageProvider: any ProcessResourceUsageProviding
+    private let now: @Sendable () -> UInt64
     private let interval: Duration
 
     init(sampler: any ProcessSampling = ProcessSampler(),
@@ -66,6 +75,8 @@ final class ProcessListModel {
          priorityProvider: any ProcessPriorityProviding = ProcessPriority(),
          fileProvider: any ProcessFileProviding = ProcInfo(),
          threadProvider: any ProcessThreadProviding = ProcInfo(),
+         usageProvider: any ProcessResourceUsageProviding = ProcInfo(),
+         now: @escaping @Sendable () -> UInt64 = { DispatchTime.now().uptimeNanoseconds },
          interval: Duration = .seconds(1)) {
         self.sampler = sampler
         self.terminator = terminator
@@ -75,6 +86,8 @@ final class ProcessListModel {
         self.priorityProvider = priorityProvider
         self.fileProvider = fileProvider
         self.threadProvider = threadProvider
+        self.usageProvider = usageProvider
+        self.now = now
         self.interval = interval
     }
 
@@ -115,6 +128,24 @@ final class ProcessListModel {
         selectedNice = selectedPID.flatMap { priorityProvider.nice(pid: $0) }
         selectedOpenFiles = selectedPID.flatMap { fileProvider.openFiles(pid: $0) }
         selectedThreads = selectedPID.flatMap { threadProvider.threads(pid: $0) }.map(ThreadInfo.sortedForDisplay)
+        refreshUsage()
+    }
+
+    private func refreshUsage() {
+        guard let pid = selectedPID, let usage = usageProvider.usage(pid: pid) else {
+            selectedUsage = nil
+            selectedUsageRates = nil
+            lastUsage = nil
+            return
+        }
+        let nanos = now()
+        if let last = lastUsage, last.pid == pid, nanos > last.nanos {
+            selectedUsageRates = ProcessUsageRates(from: last.usage, to: usage, overNanos: nanos - last.nanos)
+        } else {
+            selectedUsageRates = nil
+        }
+        selectedUsage = usage
+        lastUsage = (pid, usage, nanos)
     }
 
     /// Set the nice value of process `pid` (already confirmed by the user). On success the

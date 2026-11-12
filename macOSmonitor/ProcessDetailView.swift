@@ -45,6 +45,18 @@ struct ProcessDetailView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                Section("Disk & Energy") {
+                    if let usage = model.selectedUsage {
+                        // Rates read straight from the model (no local snapshot; see CLAUDE.md).
+                        LabeledContent("Read", value: "\(usage.readText)  ·  \(model.selectedUsageRates.map { SystemVitals.rate($0.readBytesPerSec) } ?? "—")")
+                        LabeledContent("Written", value: "\(usage.writtenText)  ·  \(model.selectedUsageRates.map { SystemVitals.rate($0.writeBytesPerSec) } ?? "—")")
+                        LabeledContent("Energy used", value: usage.energyText)
+                        LabeledContent("Power", value: model.selectedUsageRates?.powerText ?? "—")
+                    } else {
+                        Text("Disk and energy unavailable (permission denied).")
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Section("Arguments") {
                     // argv[0] is dropped: the Path row already names the executable.
                     if let arguments = model.selectedCommandLine?.arguments {
