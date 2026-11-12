@@ -9,6 +9,8 @@ final class FakeProcInfo: ProcInfoProviding, @unchecked Sendable {
     var names: [pid_t: String] = [:]
     var results: [pid_t: ProcTaskSample] = [:]
     var owners: [pid_t: uid_t] = [:]
+    var paths: [pid_t: String] = [:]
+    func path(pid: pid_t) -> String? { paths[pid] }
     func listPIDs() -> [pid_t] { pids }
     func owner(pid: pid_t) -> uid_t? { owners[pid] }
     func sample(pid: pid_t) -> ProcTaskSample? { results[pid] }

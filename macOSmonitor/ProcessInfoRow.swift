@@ -13,6 +13,10 @@ struct ProcessInfoRow: Identifiable, Hashable, Sendable {
     var isApplication: Bool = false
     /// Owning user; nil when it couldn't be read (the process exited mid-sample).
     var uid: uid_t? = nil
+    /// Owner's account name, for `user:` searches; nil when the owner is unknown.
+    var user: String? = nil
+    /// Executable path, for `path:` searches; nil when it couldn't be read.
+    var path: String? = nil
 
     var id: pid_t { pid }
 
@@ -57,12 +61,10 @@ struct ProcessInfoRow: Identifiable, Hashable, Sendable {
 
     var cpuTimeSortKey: UInt64 { cpuTimeNanos ?? 0 }
 
-    /// Case-insensitive substring match against name or PID. Empty/whitespace → matches all.
+    /// Whether this row matches a search (see `ProcessQuery` for the syntax). Blank matches
+    /// all. Parses on every call: when filtering many rows, parse one `ProcessQuery` instead.
     func matches(_ query: String) -> Bool {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return true }
-        return name.range(of: trimmed, options: .caseInsensitive) != nil
-            || String(pid).contains(trimmed)
+        ProcessQuery(query).matches(self)
     }
 
     /// CPU% formatted for display, or an em dash when detail is unavailable.

@@ -66,7 +66,7 @@ struct ProcessesView: View {
         // toolbar: a toolbar declared here is rebuilt on every surface change, which loses
         // the user's customization and blocks "Customize Toolbar…" altogether.
         .searchable(text: $searchText, isPresented: $searchPresented,
-                    placement: .toolbar, prompt: "Filter by name or PID")
+                    placement: .toolbar, prompt: "Name, PID, or pid: user: path:")
         .focusedSceneValue(\.searchPresented, $searchPresented)
         .focusedSceneValue(\.processTermination, ProcessTerminationActions(
             canTerminate: selectedRow?.canTerminate == true,
@@ -165,8 +165,9 @@ struct PendingTermination: Identifiable {
 
 private struct ProcessTableView: View {
     let sections: [ProcessTableSection]
-    /// Bolds the matched letters in the Name and PID columns, the two fields the filter searches.
+    /// Bolds the matched letters in the Name and PID columns.
     let searchText: String
+    private var query: ProcessQuery { ProcessQuery(searchText) }
     @Binding var selection: pid_t?
     @Binding var sortOrder: [KeyPathComparator<ProcessInfoRow>]
 
@@ -176,11 +177,11 @@ private struct ProcessTableView: View {
     var body: some View {
         Table(of: ProcessInfoRow.self, selection: $selection, sortOrder: $sortOrder) {
             TableColumn("Name", value: \.name) { row in
-                Text(MatchHighlight.attributed(row.name, query: searchText))
+                Text(MatchHighlight.attributed(row.name, terms: query.nameHighlights))
                     .themedCell(theme, selected: row.pid == selection)
             }
             TableColumn("PID", value: \.pid) { row in
-                Text(MatchHighlight.attributed(String(row.pid), query: searchText))
+                Text(MatchHighlight.attributed(String(row.pid), terms: query.pidHighlights(for: row.pid)))
                     .themedCell(theme, selected: row.pid == selection)
             }
             TableColumn("CPU %", value: \.cpuSortKey) { row in

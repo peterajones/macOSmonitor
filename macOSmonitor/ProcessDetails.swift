@@ -26,10 +26,7 @@ extension ProcInfo: ProcessDetailProviding {
         let bsd = info.pbsd
         let task = info.ptinfo
 
-        // PROC_PIDPATHINFO_MAXSIZE isn't Swift-visible; it's 4 * MAXPATHLEN.
-        var pathBuffer = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
-        let pathLength = proc_pidpath(pid, &pathBuffer, UInt32(pathBuffer.count))
-        let path = pathLength > 0 ? String(cString: pathBuffer) : nil
+        let path = self.path(pid: pid)
 
         return ProcessDetails(
             path: path,

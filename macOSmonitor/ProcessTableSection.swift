@@ -28,7 +28,8 @@ struct ProcessTableSection: Identifiable {
                      filter: ProcessFilter = ProcessFilter(),
                      currentUID: uid_t = getuid(),
                      sortOrder: [KeyPathComparator<ProcessInfoRow>]) -> [ProcessTableSection] {
-        let matching = rows.filter { filter.includes($0, currentUID: currentUID) && $0.matches(searchText) }
+        let query = ProcessQuery(searchText)
+        let matching = rows.filter { filter.includes($0, currentUID: currentUID) && query.matches($0) }
         let applications = matching.filter(\.isApplication).sorted {
             let order = $0.name.localizedCaseInsensitiveCompare($1.name)
             return order == .orderedSame ? $0.pid < $1.pid : order == .orderedAscending

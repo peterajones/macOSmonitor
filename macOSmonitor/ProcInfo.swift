@@ -16,6 +16,8 @@ protocol ProcInfoProviding: Sendable {
     func name(pid: pid_t) -> String
     /// The owning user's uid, or nil when the process has exited.
     func owner(pid: pid_t) -> uid_t?
+    /// The executable's path, or nil when it can't be read.
+    func path(pid: pid_t) -> String?
 }
 
 struct ProcInfo: ProcInfoProviding {
@@ -63,6 +65,13 @@ struct ProcInfo: ProcInfoProviding {
         let length = proc_name(pid, &buffer, UInt32(buffer.count))
         if length > 0 { return String(cString: buffer) }
         return "(pid \(pid))"
+    }
+
+    /// Readable for every process, root's included, and cheap: ~1 ms for all ~800 per tick.
+    func path(pid: pid_t) -> String? {
+        // PROC_PIDPATHINFO_MAXSIZE isn't Swift-visible; it's 4 * MAXPATHLEN.
+        var buffer = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
+        return proc_pidpath(pid, &buffer, UInt32(buffer.count)) > 0 ? String(cString: buffer) : nil
     }
 
     /// The short BSD info is readable for every process, root's included (unlike task

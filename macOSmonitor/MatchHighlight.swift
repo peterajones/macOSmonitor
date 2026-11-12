@@ -23,8 +23,13 @@ enum MatchHighlight {
     /// `text` with each match marked strongly emphasized, which `Text` renders bold.
     /// Bold rather than a background colour, so it stays legible in a selected row.
     static func attributed(_ text: String, query: String) -> AttributedString {
+        attributed(text, terms: [query])
+    }
+
+    /// `text` with every occurrence of each of `terms` bolded (a search's several words).
+    static func attributed(_ text: String, terms: [String]) -> AttributedString {
         var attributed = AttributedString(text)
-        for range in ranges(of: query, in: text) {
+        for range in terms.flatMap({ ranges(of: $0, in: text) }) {
             if let attributedRange = Range(range, in: attributed) {
                 attributed[attributedRange].inlinePresentationIntent = .stronglyEmphasized
             }
