@@ -8,7 +8,7 @@ _Single source of truth for unfinished work in this project. Tick an item when i
 - [ ] Add tests for the menu-bar panel's behaviour that sits outside MenuBarReadout: the showMenuBarExtra toggle and the GPU and Battery meters appearing only when the Mac reports them. (from: review harness)
 
 ## Later
-- [ ] Fix an intermittent unit-test hang: on 2026-11-12 ProcessTerminatorTests.refusesToPauseItself sat in its defer's Process.waitUntilExit() for 10+ minutes after its `sleep` child had already exited (one run in ~25 that day; the rerun passed in 13 s). Consider a bounded wait. (from: found 2026-11-12 while testing per-thread CPU time)
+- [x] Fix an intermittent unit-test hang: on 2026-11-12 ProcessTerminatorTests.refusesToPauseItself sat in its defer's Process.waitUntilExit() for 10+ minutes after its `sleep` child had already exited (one run in ~25 that day; the rerun passed in 13 s). Consider a bounded wait. (from: found 2026-11-12 while testing per-thread CPU time)
 - [ ] Show per-process network I/O; needs the private NetworkStatistics framework (from: docs/superpowers/specs/2026-07-02-process-detail-inspector-design.md)
 - [ ] Add on-behalf-of CPU time (work other processes do for this one) to the inspector (from: docs/superpowers/specs/2026-07-05-cpu-time-column-design.md)
 - [ ] Add an Energy panel with power/wattage draw and per-app energy impact; probed 2026-11-12: without root, IOReport gives GPU energy only (CPU, ANE, DRAM read 0), so system power needs the privileged helper (from: docs/superpowers/specs/2026-08-26-performance-view-design.md)

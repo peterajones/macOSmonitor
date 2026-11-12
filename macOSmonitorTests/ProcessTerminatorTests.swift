@@ -6,12 +6,10 @@ import Foundation
 struct ProcessTerminatorTests {
     let sut = ProcessTerminator()
 
-    private func launchSleep(_ seconds: String = "60") throws -> Process {
-        let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: "/bin/sleep")
-        proc.arguments = [seconds]
-        try proc.run()
-        return proc
+    /// A `sleep` child. ChildProcess, not Foundation's Process: see ChildProcess.swift for
+    /// the waitUntilExit() hang this avoids.
+    private func launchSleep(_ seconds: String = "60") throws -> ChildProcess {
+        try ChildProcess("/bin/sleep", [seconds])
     }
 
     /// The kernel's status for `pid` as the inspector shows it, polled briefly because a
@@ -28,17 +26,15 @@ struct ProcessTerminatorTests {
 
     @Test func terminatesAChildProcessWithSIGTERM() throws {
         let proc = try launchSleep()
-        #expect(sut.send(.terminate, to: proc.processIdentifier) == .success)
+        #expect(sut.send(.terminate, to: proc.pid) == .success)
 
-        proc.waitUntilExit()          // reap the child; returns promptly after SIGTERM
-        #expect(proc.terminationReason == .uncaughtSignal)
-        #expect(proc.terminationStatus == SIGTERM)
+        #expect(proc.wait() == .signaled(SIGTERM))   // reaps the child; returns promptly after SIGTERM
     }
 
     @Test func pauseStopsAChildAndResumeContinuesIt() async throws {
         let proc = try launchSleep()
-        defer { proc.terminate(); proc.waitUntilExit() }
-        let pid = proc.processIdentifier
+        defer { proc.kill() }
+        let pid = proc.pid
 
         #expect(sut.send(.stop, to: pid) == .success)
         #expect(try await status(of: pid, becomes: "Stopped") == "Stopped")
@@ -50,11 +46,9 @@ struct ProcessTerminatorTests {
 
     @Test func hangUpEndsAProgramThatDoesNotHandleIt() throws {
         let proc = try launchSleep()
-        #expect(sut.send(.hangUp, to: proc.processIdentifier) == .success)
+        #expect(sut.send(.hangUp, to: proc.pid) == .success)
 
-        proc.waitUntilExit()
-        #expect(proc.terminationReason == .uncaughtSignal)
-        #expect(proc.terminationStatus == SIGHUP)   // not SIGTERM: the signal number is right
+        #expect(proc.wait() == .signaled(SIGHUP))   // not SIGTERM: the signal number is right
     }
 
     /// Pausing our own process would freeze the app with nothing left to resume it. The
@@ -62,8 +56,8 @@ struct ProcessTerminatorTests {
     /// guard pauses the child rather than hanging the test run.
     @Test func refusesToPauseItself() async throws {
         let proc = try launchSleep()
-        defer { proc.terminate(); proc.waitUntilExit() }
-        let pid = proc.processIdentifier
+        defer { proc.kill() }
+        let pid = proc.pid
         let sender = ProcessTerminator(ownPID: pid)
 
         #expect(sender.send(.stop, to: pid) == .refusedSelfPause)
@@ -89,8 +83,8 @@ struct ProcessTerminatorTests {
 
     @Test func noSuchProcessForReapedChild() throws {
         let proc = try launchSleep("0")
-        let pid = proc.processIdentifier
-        proc.waitUntilExit()          // child exits and is reaped; pid is now gone
+        let pid = proc.pid
+        proc.wait()                   // child exits and is reaped; pid is now gone
 
         #expect(sut.send(.terminate, to: pid) == .noSuchProcess)
     }

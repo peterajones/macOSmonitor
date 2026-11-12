@@ -108,27 +108,17 @@ struct ProcInfoCommandLineTests {
         let sleepCopy = directory.appendingPathComponent("sleep")
         try FileManager.default.copyItem(at: URL(fileURLWithPath: "/bin/sleep"), to: sleepCopy)
 
-        let codesign = Process()
-        codesign.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
-        codesign.arguments = ["--force", "--sign", "-", sleepCopy.path]
-        try codesign.run()
-        codesign.waitUntilExit()
-        try #require(codesign.terminationStatus == 0)
+        // ChildProcess, not Foundation's Process: see ChildProcess.swift for the hang it avoids.
+        let codesign = try ChildProcess("/usr/bin/codesign", ["--force", "--sign", "-", sleepCopy.path])
+        try #require(codesign.wait() == .exited(0))
 
-        let child = Process()
-        child.executableURL = sleepCopy
-        child.arguments = ["5"]
-        child.environment = ["ALPHA=1", "EMPTY=", "PATH_LIKE=/a:/b"]
-            .reduce(into: [:]) { env, pair in
-                let parts = pair.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
-                env[String(parts[0])] = String(parts[1])
-            }
-        try child.run()
-        defer { child.terminate(); child.waitUntilExit() }
+        let child = try ChildProcess(sleepCopy.path, ["5"],
+                                     environment: ["ALPHA": "1", "EMPTY": "", "PATH_LIKE": "/a:/b"])
+        defer { child.kill() }
 
-        let commandLine = sut.commandLine(pid: child.processIdentifier)
+        let commandLine = sut.commandLine(pid: child.pid)
         #expect(commandLine?.arguments == [sleepCopy.path, "5"])
-        // Sorted: Process passes its environment dictionary in no fixed order.
+        // Sorted: a dictionary's environment entries come in no fixed order.
         #expect(commandLine?.environment.sorted() == ["ALPHA=1", "EMPTY=", "PATH_LIKE=/a:/b"])
     }
 
@@ -137,14 +127,10 @@ struct ProcInfoCommandLineTests {
     /// system processes" message rests on this; if a future macOS stops withholding it,
     /// this fails and the message needs revisiting.
     @Test func platformBinaryEnvironmentIsWithheld() throws {
-        let child = Process()
-        child.executableURL = URL(fileURLWithPath: "/bin/sleep")
-        child.arguments = ["5"]
-        child.environment = ["ALPHA": "1", "BETA": "2"]
-        try child.run()
-        defer { child.terminate(); child.waitUntilExit() }
+        let child = try ChildProcess("/bin/sleep", ["5"], environment: ["ALPHA": "1", "BETA": "2"])
+        defer { child.kill() }
 
-        let commandLine = sut.commandLine(pid: child.processIdentifier)
+        let commandLine = sut.commandLine(pid: child.pid)
         #expect(commandLine?.arguments == ["/bin/sleep", "5"])   // still readable
         #expect(commandLine?.environment == [])
         #expect(EnvironmentDisplay(commandLine) == .hiddenByMacOS)

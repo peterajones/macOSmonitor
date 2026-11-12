@@ -112,6 +112,12 @@ anything by deleting the code it guards and watching it fail.
   It crashed the test host mid-run, failing every test still queued in it at 0.000 s. Mark pure
   helpers on views `nonisolated` (see `SystemVitalsView.thermalText`, `MeterBar.segmentRects`).
   Many 0.000 s failures at once means a host crash: read `~/Library/Logs/DiagnosticReports/`.
+- **Tests must not wait on child processes with Foundation's `Process.waitUntilExit()`.** It
+  waits for a run-loop notification that, from Swift-concurrency contexts, sometimes never
+  arrives — even after the child has exited. It hung the suite (reproduced in under a minute by
+  repeating the process-spawning suites 40×). Use `ChildProcess` (tests target): `posix_spawn`
+  + `waitpid`, with signal dispositions reset so the child doesn't inherit the test host's
+  ignored SIGTERM/SIGHUP. Many tests stuck with no output = sample the host: `sample <pid> 1`.
 - **Count test results with an UNANCHORED grep.** Parallel test output interleaves and can split a
   result line, so `grep -cE '^Test case .* passed'` under-reports. Use `grep -c "' passed on '"`.
 - **`defaults` does NOT reach this app's preferences.** It resolves the domain to a container path

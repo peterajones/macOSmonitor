@@ -6,18 +6,16 @@ import Foundation
 struct ProcessPriorityTests {
     let sut = ProcessPriority()
 
-    private func launchSleep(_ seconds: String = "60") throws -> Process {
-        let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: "/bin/sleep")
-        proc.arguments = [seconds]
-        try proc.run()
-        return proc
+    /// A `sleep` child. ChildProcess, not Foundation's Process: see ChildProcess.swift for
+    /// the waitUntilExit() hang this avoids.
+    private func launchSleep(_ seconds: String = "60") throws -> ChildProcess {
+        try ChildProcess("/bin/sleep", [seconds])
     }
 
     @Test func readsAndRaisesTheNiceValueOfAChild() throws {
         let proc = try launchSleep()
-        defer { proc.terminate(); proc.waitUntilExit() }
-        let pid = proc.processIdentifier
+        defer { proc.kill() }
+        let pid = proc.pid
         let before = try #require(sut.nice(pid: pid))
 
         // 7 rather than a round number, and relative to `before`, so a stubbed or
@@ -32,8 +30,8 @@ struct ProcessPriorityTests {
     @Test(.enabled(if: getuid() != 0))
     func loweringNiceNeedsAdmin() throws {
         let proc = try launchSleep()
-        defer { proc.terminate(); proc.waitUntilExit() }
-        let pid = proc.processIdentifier
+        defer { proc.kill() }
+        let pid = proc.pid
 
         #expect(sut.setNice(10, pid: pid) == .success)
         #expect(sut.setNice(4, pid: pid) == .needsAdmin)
@@ -58,8 +56,8 @@ struct ProcessPriorityTests {
 
     @Test func noSuchProcessForReapedChild() throws {
         let proc = try launchSleep("0")
-        let pid = proc.processIdentifier
-        proc.waitUntilExit()
+        let pid = proc.pid
+        proc.wait()
 
         #expect(sut.nice(pid: pid) == nil)
         #expect(sut.setNice(5, pid: pid) == .noSuchProcess)
@@ -67,8 +65,8 @@ struct ProcessPriorityTests {
 
     @Test func rejectsValuesOutsideTheNiceRange() throws {
         let proc = try launchSleep()
-        defer { proc.terminate(); proc.waitUntilExit() }
-        let pid = proc.processIdentifier
+        defer { proc.kill() }
+        let pid = proc.pid
 
         // The kernel would silently clamp 25 to 20; refusing keeps what the UI shows honest.
         guard case .failure = sut.setNice(25, pid: pid) else {
