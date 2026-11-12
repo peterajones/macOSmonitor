@@ -3,6 +3,9 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
+- [ ] Add tests for the GPU series in VitalsHistory: the 60 s window and the zero-fill on ticks without statistics that keeps series index-aligned with the other metrics. (from: review harness)
+- [ ] Add a regression test for the Open Files section collapsing when the selected process changes, mirroring the existing Environment-collapse test. (from: review harness)
+- [ ] Add tests for the menu-bar panel's behaviour that sits outside MenuBarReadout: the showMenuBarExtra toggle and the GPU and Battery meters appearing only when the Mac reports them. (from: review harness)
 
 ## Later
 - [ ] Fix an intermittent unit-test hang: on 2026-11-12 ProcessTerminatorTests.refusesToPauseItself sat in its defer's Process.waitUntilExit() for 10+ minutes after its `sleep` child had already exited (one run in ~25 that day; the rerun passed in 13 s). Consider a bounded wait. (from: found 2026-11-12 while testing per-thread CPU time)
