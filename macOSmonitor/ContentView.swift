@@ -8,6 +8,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var model = ProcessListModel()
     @State private var vitalsModel = VitalsModel()
+    @State private var batteryModel = BatteryModel()
     @State private var surface: Surface? = .summary
     @AppStorage("themeID") private var themeID: String = Theme.system.id
 
@@ -36,7 +37,7 @@ struct ContentView: View {
                 Label(Surface.processes.title, systemImage: "list.bullet")
                     .tag(Surface.processes)
                 Section("Performance") {
-                    ForEach(Surface.performance) { item in
+                    ForEach(Surface.performance(hasBattery: vitalsModel.vitals?.battery != nil)) { item in
                         if let metric = item.metric {
                             SidebarMeter(title: item.title,
                                          value: meterValue(item),
@@ -72,6 +73,8 @@ struct ContentView: View {
                 NetworkPanel(model: vitalsModel)
             case .disk:
                 DiskPanel(model: vitalsModel)
+            case .battery:
+                BatteryPanel(model: batteryModel)
             }
         }
         .frame(minWidth: 900, minHeight: 500)
@@ -116,6 +119,8 @@ struct ContentView: View {
         // cancelled on every navigation.
         .task { await vitalsModel.run() }
         .task { await model.run() }
+        // Battery history records every minute whichever surface is showing.
+        .task { await batteryModel.run() }
     }
 
     /// Quit / Force Quit act only on the Processes surface, where the selection is visible.
@@ -136,6 +141,7 @@ struct ContentView: View {
         case .memory:  return vitals.memoryText
         case .network: return vitals.networkText
         case .disk:    return vitals.diskText
+        case .battery: return vitals.battery?.displayText ?? "—"
         case .summary, .processes: return ""
         }
     }
@@ -161,6 +167,8 @@ struct ContentView: View {
             return range.upperBound > 0
                 ? (vitals.diskReadBytesPerSec + vitals.diskWriteBytesPerSec) / range.upperBound
                 : 0
+        case .battery:
+            return Double(vitals.battery?.chargePercent ?? 0) / 100
         case .summary, .processes:
             return 0
         }
