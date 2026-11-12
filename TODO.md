@@ -3,8 +3,6 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [x] Add tests for BatteryHistory's 24-hour recording and pruning, including the on-power bar spans, and for BatteryModel's fallback from AppleSmartBattery to the AppleSmartBatteryPack child. (from: review harness)
-- [x] Add tests for MatchHighlight covering the new field-qualified terms, so that pid:, user:, path: and name: highlight the matched field and quoted multi-word terms highlight correctly. (from: review harness)
 
 ## Later
 - [ ] Add per-core clock speed to the CPU panel; Apple Silicon exposes it only through private IOReport or root-only powermetrics (from: docs/superpowers/specs/2026-08-26-performance-view-design.md)
