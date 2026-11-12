@@ -20,6 +20,8 @@ struct CPUPanel: View {
 
             if showsCores {
                 CoreGrid(histories: model.history.perCore,
+                         labels: CoreLayout.labels(for: model.coreLayout,
+                                                   coreCount: model.history.perCore.count),
                          lineColor: theme.graphLine,
                          fillColor: theme.graphFill,
                          backgroundColor: theme.meterOff)
@@ -43,7 +45,11 @@ struct CPUPanel: View {
             }
 
             HStack(spacing: 16) {
-                stat("Cores", model.vitals.map { "\($0.coreCount)" })
+                stat("Cores", model.coreLayout?.coreCountText ?? model.vitals.map { "\($0.coreCount)" })
+                if let layout = model.coreLayout, let perCore = model.vitals?.perCoreUsagePercent {
+                    stat("P cores", layout.averageLoad(of: .performance, perCore: perCore).map(Self.percent))
+                    stat("E cores", layout.averageLoad(of: .efficiency, perCore: perCore).map(Self.percent))
+                }
                 stat("Active", model.vitals.map { "\($0.activeCoreCount)" })
                 stat("Thermal", model.vitals?.thermalState)
             }
@@ -58,6 +64,8 @@ struct CPUPanel: View {
             }
         }
     }
+
+    private static func percent(_ value: Double) -> String { "\(Int(value.rounded()))%" }
 
     private func stat(_ label: String, _ value: String?) -> some View {
         VStack(alignment: .leading, spacing: 2) {

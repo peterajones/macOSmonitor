@@ -4,6 +4,8 @@ import SwiftUI
 /// overall CPU graph. The newest sample is at each trace's right edge.
 struct CoreGrid: View {
     let histories: [MetricHistory]
+    /// "P1", "E3", … or "0", "1", … when the core layout is unknown.
+    let labels: [String]
     let lineColor: Color
     let fillColor: Color
     let backgroundColor: Color
@@ -24,7 +26,7 @@ struct CoreGrid: View {
                                 gridColor: .clear)
                         .background(backgroundColor)
                         .frame(height: 56)
-                    Text("\(index)")
+                    Text(index < labels.count ? labels[index] : "\(index)")
                         .font(.caption2)
                         .monospacedDigit()
                         .foregroundStyle(theme.secondaryText)

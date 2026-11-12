@@ -14,14 +14,19 @@ final class VitalsModel {
     /// When the latest sample arrived, so a graph can glide between samples.
     private(set) var lastSampleDate: Date?
 
+    /// Which cores are performance and which efficiency; nil where the Mac doesn't say.
+    let coreLayout: CoreLayout?
+
     private let sampler: any SystemVitalsSampling
     private let interval: Duration
     private let now: @Sendable () -> Date
 
     init(sampler: any SystemVitalsSampling = SystemVitalsSampler(),
          interval: Duration = .seconds(1),
+         coreLayoutProvider: any CoreLayoutProviding = DeviceTreeCoreLayout(),
          now: @escaping @Sendable () -> Date = { Date() }) {
         self.sampler = sampler
+        coreLayout = coreLayoutProvider.read()
         self.interval = interval
         self.now = now
     }
