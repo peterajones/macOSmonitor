@@ -3,7 +3,6 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [x] Add a battery-detail view with health, cycle count and charging history (from: docs/superpowers/specs/2026-07-08-battery-vital-design.md)
 
 ## Later
 - [ ] Add a GPU utilisation/memory provider and surface it in the vitals and Performance views (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
