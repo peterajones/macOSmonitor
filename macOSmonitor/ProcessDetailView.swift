@@ -13,6 +13,8 @@ struct ProcessDetailView: View {
 
     private let isRoot = getuid() == 0
 
+    @AppStorage(CPUTimeFormat.storageKey) private var cpuTimeFormat: CPUTimeFormat = .adaptive
+
     var body: some View {
         @Bindable var model = model   // for the Environment disclosure's isExpanded binding
 
@@ -22,7 +24,7 @@ struct ProcessDetailView: View {
                     LabeledContent("Name", value: row.name)
                     LabeledContent("PID", value: String(row.pid))
                     LabeledContent("CPU %", value: row.cpuText)
-                    LabeledContent("CPU Time", value: row.cpuTimeText)
+                    LabeledContent("CPU Time", value: row.cpuTimeText(cpuTimeFormat))
                     LabeledContent("Memory", value: row.memoryText)
                 }
                 prioritySection(row)

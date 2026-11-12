@@ -41,22 +41,12 @@ struct ProcessInfoRow: Identifiable, Hashable, Sendable {
         return Array(sorted.prefix(limit))
     }
 
-    /// Cumulative user+system CPU time, or "—" when unreadable. Adaptive format:
-    /// M:SS.ss under an hour, H:MM:SS at/beyond an hour (matches Activity Monitor).
-    var cpuTimeText: String {
-        guard let nanos = cpuTimeNanos else { return "—" }
-        // Round to hundredths ONCE, then decompose with integer math so fractional
-        // rounding can never push the seconds field to 60 (e.g. avoid "1:60.00").
-        let totalCentiseconds = Int((Double(nanos) / 10_000_000).rounded())
-        let totalSeconds = totalCentiseconds / 100
-        if totalSeconds < 3600 {
-            let minutes = totalSeconds / 60
-            let centisInMinute = totalCentiseconds - minutes * 6000
-            return String(format: "%d:%02d.%02d", minutes, centisInMinute / 100, centisInMinute % 100)
-        } else {
-            return String(format: "%d:%02d:%02d",
-                          totalSeconds / 3600, (totalSeconds % 3600) / 60, totalSeconds % 60)
-        }
+    /// Cumulative user+system CPU time in Activity Monitor's format, or "—" when unreadable.
+    var cpuTimeText: String { cpuTimeText(.adaptive) }
+
+    /// Cumulative user+system CPU time in `format`, or "—" when unreadable.
+    func cpuTimeText(_ format: CPUTimeFormat) -> String {
+        format.string(nanos: cpuTimeNanos)
     }
 
     var cpuTimeSortKey: UInt64 { cpuTimeNanos ?? 0 }

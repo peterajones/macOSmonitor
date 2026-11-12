@@ -16,6 +16,7 @@ struct macOSmonitorApp: App {
         .commands {
             SearchCommands()
             ProcessCommands()
+            CPUTimeFormatCommands()
         }
     }
 }
@@ -59,6 +60,23 @@ private struct ProcessCommands: Commands {
                 }
             }
             .disabled(actions?.canTerminate != true)
+        }
+    }
+}
+
+/// View ▸ CPU Time Format: how the process table and inspector write CPU time. Stored in
+/// @AppStorage, so every window follows the choice and it survives relaunches.
+private struct CPUTimeFormatCommands: Commands {
+    @AppStorage(CPUTimeFormat.storageKey) private var format: CPUTimeFormat = .adaptive
+
+    var body: some Commands {
+        CommandGroup(before: .toolbar) {
+            Picker("CPU Time Format", selection: $format) {
+                ForEach(CPUTimeFormat.allCases) { format in
+                    Text(format.title).tag(format)
+                }
+            }
+            Divider()
         }
     }
 }

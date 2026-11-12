@@ -173,6 +173,7 @@ private struct ProcessTableView: View {
 
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(CPUTimeFormat.storageKey) private var cpuTimeFormat: CPUTimeFormat = .adaptive
 
     var body: some View {
         Table(of: ProcessInfoRow.self, selection: $selection, sortOrder: $sortOrder) {
@@ -190,7 +191,7 @@ private struct ProcessTableView: View {
                     .themedCell(theme, selected: row.pid == selection)
             }
             TableColumn("CPU Time", value: \.cpuTimeSortKey) { row in
-                Text(row.cpuTimeText)
+                Text(row.cpuTimeText(cpuTimeFormat))
                     .monospacedDigit()
                     .themedCell(theme, selected: row.pid == selection)
             }
