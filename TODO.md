@@ -3,6 +3,9 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
+- [ ] Add tests for BatteryHistory's 24-hour recording and pruning, including the on-power bar spans, and for BatteryModel's fallback from AppleSmartBattery to the AppleSmartBatteryPack child. (from: review harness)
+- [ ] Add tests for MatchHighlight covering the new field-qualified terms, so that pid:, user:, path: and name: highlight the matched field and quoted multi-word terms highlight correctly. (from: review harness)
+- [ ] Add a test for the Open Files group's collapse-on-selection-change behaviour and its empty or unavailable state for processes whose descriptors macOS withholds. (from: review harness)
 
 ## Later
 - [ ] Add a GPU utilisation/memory provider and surface it in the vitals and Performance views (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
