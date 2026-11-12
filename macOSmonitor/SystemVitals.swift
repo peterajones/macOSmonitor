@@ -24,6 +24,8 @@ struct SystemVitals: Equatable, Sendable {
     var swap: SwapUsage? = nil
     var memoryPressure: MemoryPressure? = nil
     var gpu: GPUInfo? = nil
+    /// Per-core clock keyed by core label ("E1", "P3"); empty when unavailable.
+    var coreFrequencies: [String: CoreFrequency] = [:]
 
     var gpuText: String { gpu?.utilizationText ?? "—" }
 

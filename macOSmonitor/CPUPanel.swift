@@ -21,7 +21,10 @@ struct CPUPanel: View {
             if showsCores {
                 CoreGrid(histories: model.history.perCore,
                          labels: CoreLayout.labels(for: model.coreLayout,
-                                                   coreCount: model.history.perCore.count),
+                                                   coreCount: model.history.perCore.count)
+                            .map { label in
+                                model.vitals?.coreFrequencies[label].map { "\(label) · \($0.text)" } ?? label
+                            },
                          lineColor: theme.graphLine,
                          fillColor: theme.graphFill,
                          backgroundColor: theme.meterOff)
@@ -50,6 +53,10 @@ struct CPUPanel: View {
                     stat("P cores", layout.averageLoad(of: .performance, perCore: perCore).map(Self.percent))
                     stat("E cores", layout.averageLoad(of: .efficiency, perCore: perCore).map(Self.percent))
                 }
+                if let frequencies = model.vitals?.coreFrequencies, !frequencies.isEmpty {
+                    stat("P clock", Self.clusterClock(frequencies, prefix: "P"))
+                    stat("E clock", Self.clusterClock(frequencies, prefix: "E"))
+                }
                 stat("Active", model.vitals.map { "\($0.activeCoreCount)" })
                 stat("Thermal", model.vitals?.thermalState)
             }
@@ -66,6 +73,13 @@ struct CPUPanel: View {
     }
 
     private static func percent(_ value: Double) -> String { "\(Int(value.rounded()))%" }
+
+    /// "~3.1 GHz" across one kind of core, weighted by activity; "idle" when none ran.
+    nonisolated static func clusterClock(_ frequencies: [String: CoreFrequency], prefix: String) -> String {
+        let cores = frequencies.filter { $0.key.hasPrefix(prefix) }.map(\.value)
+        guard !cores.isEmpty else { return "—" }
+        return CPUFrequencyMath.groupAverageMHz(cores).map { "~" + CoreFrequency.text(mhz: $0) } ?? "idle"
+    }
 
     private func stat(_ label: String, _ value: String?) -> some View {
         VStack(alignment: .leading, spacing: 2) {

@@ -13,6 +13,7 @@ actor SystemVitalsSampler: SystemVitalsSampling {
     private let battery: any BatteryStatsProviding
     private let disk: any DiskStatsProviding
     private let gpu: any GPUStatsProviding
+    private let frequencies: any CPUFrequencyProviding
     private let now: @Sendable () -> UInt64
     private var previousCores: [CoreTicks]?
     private var previousInterfaces: [String: InterfaceCounters] = [:]
@@ -27,12 +28,14 @@ actor SystemVitalsSampler: SystemVitalsSampling {
          battery: any BatteryStatsProviding = BatteryStats(),
          disk: any DiskStatsProviding = DiskStats(),
          gpu: any GPUStatsProviding = GPUStats(),
+         frequencies: any CPUFrequencyProviding = IOReportCPUFrequencies(),
          now: @escaping @Sendable () -> UInt64 = { DispatchTime.now().uptimeNanoseconds }) {
         self.host = host
         self.network = network
         self.battery = battery
         self.disk = disk
         self.gpu = gpu
+        self.frequencies = frequencies
         self.now = now
     }
 
@@ -147,7 +150,8 @@ actor SystemVitalsSampler: SystemVitalsSampling {
             memoryReading: memory,
             swap: host.swapUsage(),
             memoryPressure: host.memoryPressureLevel().flatMap(MemoryPressure.init(kernelLevel:)),
-            gpu: gpu.read()
+            gpu: gpu.read(),
+            coreFrequencies: frequencies.read() ?? [:]
         )
     }
 
