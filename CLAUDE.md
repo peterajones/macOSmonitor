@@ -40,6 +40,13 @@ small `Sendable` protocol (`HostStatsProviding`, `NetworkStatsProviding`, `Batte
 `ProcessSignal`) with a real struct and a test fake. This is what makes the samplers and models
 testable — keep it when adding a data source.
 
+**Private APIs are allowed (decided 2026-11-12), with fallbacks.** The app is for Peter's own
+use for now (not shipped; he has a developer account, so Developer ID + notarization stay
+open). Temperature, clock speed, NPU and power draw need IOReport / SMC / private HID sensors.
+Each private read goes behind its own provider protocol and must return nil — hiding its
+panel — when the interface is missing or changes shape, never crash. Re-run the
+real-hardware tests after each macOS update.
+
 **Samplers are `actor`s**, take an injected `now: () -> UInt64` clock so rate arithmetic is
 testable, and guard every counter delta (counters wrap and devices reset; unsigned subtraction
 traps in Swift).
