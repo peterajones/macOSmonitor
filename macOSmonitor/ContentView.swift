@@ -7,7 +7,8 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var model = ProcessListModel()
-    @State private var vitalsModel = VitalsModel()
+    /// Owned by the app, shared with the menu bar and other windows; its loop runs there.
+    let vitalsModel: VitalsModel
     @State private var batteryModel = BatteryModel()
     @State private var surface: Surface? = .summary
     @AppStorage("themeID") private var themeID: String = Theme.system.id
@@ -115,12 +116,11 @@ struct ContentView: View {
                 }
             }
         }
-        // Both sampling loops live here, on the always-alive split view. The vitals
-        // loop moved up in M10 so sidebar meters keep updating; the process loop
-        // moved up in M11 so the Summary's top-processes card has data on every
-        // surface. A loop owned by a view inside the detail `switch` would be
-        // cancelled on every navigation.
-        .task { await vitalsModel.run() }
+        // The window's loops live here, on the always-alive split view: the process loop
+        // moved up in M11 so the Summary's top-processes card has data on every surface.
+        // A loop owned by a view inside the detail `switch` would be cancelled on every
+        // navigation. The vitals loop moved further up, to the app, so the menu bar shares
+        // it (see macOSmonitorApp).
         .task { await model.run() }
         // Battery history records every minute whichever surface is showing.
         .task { await batteryModel.run() }
@@ -182,5 +182,5 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    ContentView(vitalsModel: VitalsModel())
 }

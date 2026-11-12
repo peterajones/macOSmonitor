@@ -9,14 +9,47 @@ import SwiftUI
 
 @main
 struct macOSmonitorApp: App {
+    static let mainWindowID = "main"
+
+    /// System vitals are the same for every window and the menu bar, so one model samples
+    /// them for the whole app. Its loop starts here, once, rather than in a view's `.task`,
+    /// because the menu-bar label needs it whether or not any window is open.
+    @State private var vitalsModel: VitalsModel
+    @AppStorage("showMenuBarExtra") private var showsMenuBarExtra = true
+
+    init() {
+        let model = VitalsModel()
+        _vitalsModel = State(initialValue: model)
+        Task { await model.run() }
+    }
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        WindowGroup(id: Self.mainWindowID) {
+            ContentView(vitalsModel: vitalsModel)
         }
         .commands {
             SearchCommands()
             ProcessCommands()
             CPUTimeFormatCommands()
+            MenuBarCommands(showsMenuBarExtra: $showsMenuBarExtra)
+        }
+
+        MenuBarExtra(isInserted: $showsMenuBarExtra) {
+            MenuBarPanel(vitalsModel: vitalsModel)
+        } label: {
+            MenuBarLabel(vitalsModel: vitalsModel)
+        }
+        .menuBarExtraStyle(.window)
+    }
+}
+
+/// View ▸ Show in Menu Bar.
+private struct MenuBarCommands: Commands {
+    @Binding var showsMenuBarExtra: Bool
+
+    var body: some Commands {
+        CommandGroup(before: .toolbar) {
+            Toggle("Show in Menu Bar", isOn: $showsMenuBarExtra)
         }
     }
 }

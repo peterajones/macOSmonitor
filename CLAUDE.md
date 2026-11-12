@@ -45,8 +45,12 @@ testable, and guard every counter delta (counters wrap and devices reset; unsign
 traps in Swift).
 
 **Models are `@MainActor @Observable`** and own a sampler plus a ~1 Hz `run()` loop.
-`ProcessListModel` (process table) and `VitalsModel` (performance metrics) are independent
-siblings owned by `ContentView`, each with its own loop.
+`ProcessListModel` (process table) and `BatteryModel` are owned per window by `ContentView`.
+`VitalsModel` (performance metrics) is owned by the **app** (`macOSmonitorApp`, loop started
+once in `init`) and shared by every window and the menu-bar item: vitals have no per-window
+state. Keep `ProcessListModel` per window — it holds the selection, and sharing it across
+windows would let one window act on another's selected process. The menu-bar panel has its
+own `ProcessListModel`, run only while the panel is open.
 
 **Views must read the model directly inside `body`** — never snapshot into a local `let` first.
 Doing that has caused a "frozen panel" regression here more than once.
