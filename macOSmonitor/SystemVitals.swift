@@ -23,6 +23,9 @@ struct SystemVitals: Equatable, Sendable {
     var memoryReading: MemoryReading? = nil
     var swap: SwapUsage? = nil
     var memoryPressure: MemoryPressure? = nil
+    var gpu: GPUInfo? = nil
+
+    var gpuText: String { gpu?.utilizationText ?? "—" }
 
     var cpuText: String { "\(Int(cpuUsagePercent.rounded()))%" }
 

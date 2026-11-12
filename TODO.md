@@ -3,18 +3,19 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
+- [x] Add a GPU utilisation/memory provider and surface it in the vitals and Performance views (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
+- [ ] Add a menu-bar surface (from: docs/superpowers/specs/2026-07-02-process-dashboard-design.md)
+- [ ] Add P/E core labelling to the CPU panel (from: docs/superpowers/specs/2026-08-26-performance-view-design.md)
 - [ ] Add tests for BatteryHistory's 24-hour recording and pruning, including the on-power bar spans, and for BatteryModel's fallback from AppleSmartBattery to the AppleSmartBatteryPack child. (from: review harness)
 - [ ] Add tests for MatchHighlight covering the new field-qualified terms, so that pid:, user:, path: and name: highlight the matched field and quoted multi-word terms highlight correctly. (from: review harness)
-- [ ] Add a test for the Open Files group's collapse-on-selection-change behaviour and its empty or unavailable state for processes whose descriptors macOS withholds. (from: review harness)
+- [x] Add a test for the Open Files group's collapse-on-selection-change behaviour and its empty or unavailable state for processes whose descriptors macOS withholds. (from: review harness)
 
 ## Later
-- [ ] Add a GPU utilisation/memory provider and surface it in the vitals and Performance views (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
+- [ ] Add per-core clock speed to the CPU panel; Apple Silicon exposes it only through private IOReport or root-only powermetrics (from: docs/superpowers/specs/2026-08-26-performance-view-design.md)
 - [ ] Add per-process GPU columns to the process table (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
 - [ ] Add temperature readings and a Thermal sensor-detail panel (from: docs/superpowers/specs/2026-08-26-performance-view-design.md)
 - [ ] Add an Energy panel with power/wattage draw and per-app energy impact (from: docs/superpowers/specs/2026-08-26-performance-view-design.md)
 - [ ] Add NPU utilisation (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
-- [ ] Add P/E core labelling and per-core clock speed to the CPU panel (from: docs/superpowers/specs/2026-08-26-performance-view-design.md)
-- [ ] Add a menu-bar surface (from: docs/superpowers/specs/2026-07-02-process-dashboard-design.md)
 - [ ] Build a privileged XPC helper (SMAppService) for full detail on, and termination of, all processes (from: docs/superpowers/specs/2026-07-02-process-dashboard-design.md)
 - [ ] Show per-process network and disk I/O (from: docs/superpowers/specs/2026-07-02-process-detail-inspector-design.md)
 - [ ] Support multi-select termination (from: docs/superpowers/specs/2026-07-02-process-termination-design.md)

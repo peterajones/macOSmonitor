@@ -5,5 +5,5 @@ import Foundation
 /// Deliberately separate from `Surface`, which also carries non-metric cases
 /// (`.processes`, `.summary`) that would need meaningless colour entries.
 enum Metric: String, CaseIterable, Hashable, Sendable {
-    case cpu, memory, network, disk, battery, thermal
+    case cpu, gpu, memory, network, disk, battery, thermal
 }

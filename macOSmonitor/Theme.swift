@@ -64,6 +64,7 @@ struct Theme: Identifiable, Equatable, Sendable {
     /// 2.54, 2.99 and 2.76; the threshold was never the thing to move.
     static let systemMetricSamples: [Metric: RGB] = [
         .cpu:     RGB(r: 0.13, g: 0.55, b: 0.24),
+        .gpu:     RGB(r: 0.80, g: 0.28, b: 0.62),
         .memory:  RGB(r: 0.64, g: 0.45, b: 0.90),
         .network: RGB(r: 0.26, g: 0.58, b: 0.95),
         .disk:    RGB(r: 0.70, g: 0.38, b: 0.05),

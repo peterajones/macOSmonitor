@@ -74,10 +74,11 @@ struct ProcessDetailView: View {
                     }
                 }
                 Section {
-                    // Collapsed by default: big apps hold hundreds of descriptors, which would
-                    // push Environment far down the inspector.
+                    // Collapsed by default and on every selection change (see
+                    // ProcessListModel.isOpenFilesExpanded).
                     if let files = model.selectedOpenFiles {
-                        DisclosureGroup("Open Files (\(files.count))") {
+                        DisclosureGroup("Open Files (\(files.count))",
+                                        isExpanded: $model.isOpenFilesExpanded) {
                             ForEach(files, id: \.fd) { file in
                                 Text(file.displayText)
                                     .monospaced()

@@ -37,7 +37,8 @@ struct ContentView: View {
                 Label(Surface.processes.title, systemImage: "list.bullet")
                     .tag(Surface.processes)
                 Section("Performance") {
-                    ForEach(Surface.performance(hasBattery: vitalsModel.vitals?.battery != nil)) { item in
+                    ForEach(Surface.performance(hasGPU: vitalsModel.vitals?.gpu != nil,
+                                                hasBattery: vitalsModel.vitals?.battery != nil)) { item in
                         if let metric = item.metric {
                             SidebarMeter(title: item.title,
                                          value: meterValue(item),
@@ -67,6 +68,8 @@ struct ContentView: View {
                               errorMessage: $errorMessage)
             case .cpu:
                 CPUPanel(model: vitalsModel)
+            case .gpu:
+                GPUPanel(model: vitalsModel)
             case .memory:
                 MemoryPanel(model: vitalsModel)
             case .network:
@@ -138,6 +141,7 @@ struct ContentView: View {
         guard let vitals = vitalsModel.vitals else { return "—" }
         switch surface {
         case .cpu:     return vitals.cpuText
+        case .gpu:     return vitals.gpuText
         case .memory:  return vitals.memoryText
         case .network: return vitals.networkText
         case .disk:    return vitals.diskText
@@ -151,6 +155,8 @@ struct ContentView: View {
         switch surface {
         case .cpu:
             return vitals.cpuUsagePercent / 100
+        case .gpu:
+            return (vitals.gpu?.utilizationPercent ?? 0) / 100
         case .memory:
             return vitals.totalMemoryBytes > 0
                 ? Double(vitals.usedMemoryBytes) / Double(vitals.totalMemoryBytes)

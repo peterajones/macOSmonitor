@@ -7,6 +7,7 @@ struct SystemVitalsView: View {
     var body: some View {
         HStack(spacing: 0) {
             item("CPU", vitals?.cpuText)
+            if let gpu = vitals?.gpu { item("GPU", gpu.utilizationText) }
             item("Memory", vitals?.memoryText)
             item("Network", vitals?.networkText)
             item("Thermal", vitals?.thermalState)

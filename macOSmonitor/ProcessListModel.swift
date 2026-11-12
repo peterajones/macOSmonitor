@@ -13,6 +13,7 @@ final class ProcessListModel {
         didSet {
             if selectedPID != oldValue {
                 isEnvironmentRevealed = false
+                isOpenFilesExpanded = false
                 niceDraft = nil
                 reniceError = nil
             }
@@ -28,6 +29,10 @@ final class ProcessListModel {
     /// Whether the inspector's Environment section is expanded. Collapsed by default.
     /// Held here rather than as view @State so the reset rule above is testable.
     var isEnvironmentRevealed = false
+    /// Whether the inspector's Open Files group is expanded. Collapsed by default and on every
+    /// selection change: a big app's hundreds of descriptors shouldn't stay open while you
+    /// click through processes, and paths can be private too.
+    var isOpenFilesExpanded = false
     /// Detail for the selected process; nil when nothing selected or access is denied.
     private(set) var selectedDetails: ProcessDetails?
     /// Open network sockets for the selected process; empty when none selected or denied.

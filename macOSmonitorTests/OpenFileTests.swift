@@ -93,4 +93,37 @@ struct OpenFilesModelTests {
         model.refreshSelection()
         #expect(model.selectedOpenFiles == nil)
     }
+
+    @Test func openFilesCollapseWhenTheSelectionChanges() {
+        let model = ProcessListModel(sampler: FakeSampler(), fileProvider: FakeFileProvider())
+        #expect(model.isOpenFilesExpanded == false)      // collapsed by default
+
+        model.selectedPID = 10
+        model.isOpenFilesExpanded = true
+        model.selectedPID = 10                           // the 1 Hz re-set of the same process: stays open
+        #expect(model.isOpenFilesExpanded == true)
+
+        model.selectedPID = 11                           // another process: collapses
+        #expect(model.isOpenFilesExpanded == false)
+
+        model.isOpenFilesExpanded = true
+        model.selectedPID = nil                          // deselecting collapses too
+        #expect(model.isOpenFilesExpanded == false)
+    }
+
+    /// Withheld (nil, shown as "unavailable") must stay distinct from "has no descriptors"
+    /// (an empty list, shown as "Open Files (0)").
+    @Test func withheldDescriptorsStayDistinctFromNone() {
+        let fake = FakeFileProvider()
+        let model = ProcessListModel(sampler: FakeSampler(), fileProvider: fake)
+        model.selectedPID = 1
+
+        fake.result = nil
+        model.refreshSelection()
+        #expect(model.selectedOpenFiles == nil)
+
+        fake.result = []
+        model.refreshSelection()
+        #expect(model.selectedOpenFiles == [])
+    }
 }
