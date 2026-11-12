@@ -11,6 +11,8 @@ struct ProcessInfoRow: Identifiable, Hashable, Sendable {
     var memoryBytes: UInt64?
     var cpuTimeNanos: UInt64? = nil
     var isApplication: Bool = false
+    /// Owning user; nil when it couldn't be read (the process exited mid-sample).
+    var uid: uid_t? = nil
 
     var id: pid_t { pid }
 

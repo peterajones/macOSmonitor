@@ -20,6 +20,9 @@ struct ProcessesView: View {
     @Binding var showInspector: Bool
     @Binding var searchText: String
     @Binding var searchPresented: Bool
+    @Binding var filterPreset: ProcessFilter.Preset
+    @Binding var hidesSystemProcesses: Bool
+    @Binding var savedSearches: SavedSearches
     @Binding var pendingTermination: PendingTermination?
     @Binding var errorMessage: String?
 
@@ -29,10 +32,17 @@ struct ProcessesView: View {
         VStack(spacing: 0) {
             SystemVitalsView(vitals: vitalsModel.vitals)
             Divider()
+            ProcessFilterBar(preset: $filterPreset,
+                             hidesSystem: $hidesSystemProcesses,
+                             searchText: $searchText,
+                             savedSearches: $savedSearches)
+            Divider()
             ProcessTableView(
-                sections: ProcessTableSection.make(rows: model.rows,
-                                                   searchText: searchText,
-                                                   sortOrder: sortOrder),
+                sections: ProcessTableSection.make(
+                    rows: model.rows,
+                    searchText: searchText,
+                    filter: ProcessFilter(preset: filterPreset, hidesSystem: hidesSystemProcesses),
+                    sortOrder: sortOrder),
                 searchText: searchText,
                 selection: $model.selectedPID,
                 sortOrder: $sortOrder

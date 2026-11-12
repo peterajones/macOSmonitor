@@ -32,10 +32,11 @@ actor ProcessSampler: ProcessSampling {
 
         for pid in source.listPIDs() {
             let name = source.name(pid: pid)
+            let uid = source.owner(pid: pid)
             guard let s = source.sample(pid: pid) else {
                 // Denied (EPERM) or vanished: name + pid only (Decision A).
                 rows.append(ProcessInfoRow(pid: pid, name: name, cpuPercent: nil, memoryBytes: nil,
-                                           isApplication: appPIDs.contains(pid)))
+                                           isApplication: appPIDs.contains(pid), uid: uid))
                 continue
             }
             currentCPU[pid] = s.cpuTimeNanos
@@ -48,7 +49,7 @@ actor ProcessSampler: ProcessSampling {
             rows.append(ProcessInfoRow(pid: pid, name: name,
                                        cpuPercent: cpuPercent, memoryBytes: s.residentBytes,
                                        cpuTimeNanos: s.cpuTimeNanos,
-                                       isApplication: appPIDs.contains(pid)))
+                                       isApplication: appPIDs.contains(pid), uid: uid))
         }
 
         previousCPU = currentCPU

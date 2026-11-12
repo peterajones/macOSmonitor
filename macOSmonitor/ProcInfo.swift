@@ -14,6 +14,8 @@ protocol ProcInfoProviding: Sendable {
     func listPIDs() -> [pid_t]
     func sample(pid: pid_t) -> ProcTaskSample?
     func name(pid: pid_t) -> String
+    /// The owning user's uid, or nil when the process has exited.
+    func owner(pid: pid_t) -> uid_t?
 }
 
 struct ProcInfo: ProcInfoProviding {
@@ -61,5 +63,14 @@ struct ProcInfo: ProcInfoProviding {
         let length = proc_name(pid, &buffer, UInt32(buffer.count))
         if length > 0 { return String(cString: buffer) }
         return "(pid \(pid))"
+    }
+
+    /// The short BSD info is readable for every process, root's included (unlike task
+    /// info), so ownership is known even for rows whose CPU and memory are denied.
+    func owner(pid: pid_t) -> uid_t? {
+        var info = proc_bsdshortinfo()
+        let size = Int32(MemoryLayout<proc_bsdshortinfo>.size)
+        guard proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 0, &info, size) == size else { return nil }
+        return info.pbsi_uid
     }
 }

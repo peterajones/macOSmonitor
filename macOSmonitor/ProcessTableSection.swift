@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 /// One titled group of rows in the process table.
@@ -16,15 +17,18 @@ struct ProcessTableSection: Identifiable {
         }
     }
 
-    /// Splits the rows matching `searchText` into sections, omitting any left empty.
+    /// Splits the rows passing `filter` and matching `searchText` into sections, omitting
+    /// any left empty.
     ///
     /// Applications always sort by name so they hold their place as CPU figures change
     /// each tick; only Background processes follow the clicked column. The PID tiebreak
     /// keeps same-named apps from swapping places.
     static func make(rows: [ProcessInfoRow],
                      searchText: String,
+                     filter: ProcessFilter = ProcessFilter(),
+                     currentUID: uid_t = getuid(),
                      sortOrder: [KeyPathComparator<ProcessInfoRow>]) -> [ProcessTableSection] {
-        let matching = rows.filter { $0.matches(searchText) }
+        let matching = rows.filter { filter.includes($0, currentUID: currentUID) && $0.matches(searchText) }
         let applications = matching.filter(\.isApplication).sorted {
             let order = $0.name.localizedCaseInsensitiveCompare($1.name)
             return order == .orderedSame ? $0.pid < $1.pid : order == .orderedAscending

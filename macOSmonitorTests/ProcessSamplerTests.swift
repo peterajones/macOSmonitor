@@ -8,7 +8,9 @@ final class FakeProcInfo: ProcInfoProviding, @unchecked Sendable {
     var pids: [pid_t] = []
     var names: [pid_t: String] = [:]
     var results: [pid_t: ProcTaskSample] = [:]
+    var owners: [pid_t: uid_t] = [:]
     func listPIDs() -> [pid_t] { pids }
+    func owner(pid: pid_t) -> uid_t? { owners[pid] }
     func sample(pid: pid_t) -> ProcTaskSample? { results[pid] }
     func name(pid: pid_t) -> String { names[pid] ?? "(pid \(pid))" }
 }
@@ -30,6 +32,19 @@ struct ProcessSamplerTests {
 
         let rows = await sampler.sample()
         #expect(rows.map(\.isApplication) == [true, false])
+    }
+
+    /// The owner is carried on denied rows too: those are mostly the system processes the
+    /// Hide System Processes switch exists for.
+    @Test func ownerIsCarriedOnReadableAndDeniedRows() async {
+        let fake = FakeProcInfo()
+        fake.pids = [42, 43]
+        fake.results = [42: ProcTaskSample(residentBytes: 1, cpuTimeNanos: 0)]
+        fake.owners = [42: 501, 43: 262]
+        let sampler = ProcessSampler(source: fake, apps: FakeRegularApps(), now: { 0 })
+
+        let rows = await sampler.sample()
+        #expect(rows.map(\.uid) == [501, 262])
     }
 
     @Test func deniedRegularAppIsStillMarkedAsApplication() async {

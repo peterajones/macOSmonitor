@@ -20,6 +20,11 @@ struct ContentView: View {
     @State private var searchPresented = false
     @State private var pendingTermination: PendingTermination?
     @State private var errorMessage: String?
+    // Remembered across launches, like Activity Monitor's View menu choice. Search text
+    // itself is not: a filter you forgot about would hide processes on the next launch.
+    @AppStorage("processFilterPreset") private var filterPreset: ProcessFilter.Preset = .all
+    @AppStorage("hideSystemProcesses") private var hidesSystemProcesses = false
+    @AppStorage("savedSearches") private var savedSearches = SavedSearches()
 
     private var theme: Theme { Theme.named(themeID) }
 
@@ -54,6 +59,9 @@ struct ContentView: View {
                               showInspector: $showInspector,
                               searchText: $searchText,
                               searchPresented: $searchPresented,
+                              filterPreset: $filterPreset,
+                              hidesSystemProcesses: $hidesSystemProcesses,
+                              savedSearches: $savedSearches,
                               pendingTermination: $pendingTermination,
                               errorMessage: $errorMessage)
             case .cpu:

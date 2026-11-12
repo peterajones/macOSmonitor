@@ -3,7 +3,7 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [ ] Add filter presets, saved searches and a hide-system-processes toggle (from: docs/superpowers/specs/2026-07-05-table-search-design.md)
+- [x] Add filter presets, saved searches and a hide-system-processes toggle (from: docs/superpowers/specs/2026-07-05-table-search-design.md)
 - [ ] Add a battery-detail view with health, cycle count and charging history (from: docs/superpowers/specs/2026-07-08-battery-vital-design.md)
 
 ## Later
