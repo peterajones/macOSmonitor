@@ -3,7 +3,6 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [x] Show per-process disk I/O and energy in the inspector for the user's own processes (from: docs/superpowers/specs/2026-07-02-process-detail-inspector-design.md)
 
 ## Later
 - [ ] Fix an intermittent unit-test hang: on 2026-11-12 ProcessTerminatorTests.refusesToPauseItself sat in its defer's Process.waitUntilExit() for 10+ minutes after its `sleep` child had already exited (one run in ~25 that day; the rerun passed in 13 s). Consider a bounded wait. (from: found 2026-11-12 while testing per-thread CPU time)
