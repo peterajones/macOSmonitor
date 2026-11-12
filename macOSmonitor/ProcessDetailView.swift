@@ -25,6 +25,7 @@ struct ProcessDetailView: View {
                     LabeledContent("PID", value: String(row.pid))
                     LabeledContent("CPU %", value: row.cpuText)
                     LabeledContent("CPU Time", value: row.cpuTimeText(cpuTimeFormat))
+                    LabeledContent("GPU Time", value: cpuTimeFormat.string(nanos: row.gpuTimeNanos))
                     LabeledContent("Memory", value: row.memoryText)
                 }
                 prioritySection(row)
@@ -71,6 +72,24 @@ struct ProcessDetailView: View {
                             Text(port.displayText)
                                 .monospaced()
                         }
+                    }
+                }
+                Section {
+                    // Collapsed by default and on every selection change, like Open Files.
+                    if let threads = model.selectedThreads {
+                        DisclosureGroup("Threads (\(threads.count))", isExpanded: $model.isThreadsExpanded) {
+                            ForEach(threads) { thread in
+                                LabeledContent {
+                                    Text("\(cpuTimeFormat.string(nanos: thread.cpuTimeNanos))  \(String(format: "%.1f%%", thread.cpuPercent))")
+                                        .monospacedDigit()
+                                } label: {
+                                    Text(thread.displayName).lineLimit(1).truncationMode(.middle)
+                                }
+                            }
+                        }
+                    } else {
+                        Text("Threads unavailable (permission denied).")
+                            .foregroundStyle(.secondary)
                     }
                 }
                 Section {

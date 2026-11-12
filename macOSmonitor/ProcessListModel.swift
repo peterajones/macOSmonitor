@@ -14,6 +14,7 @@ final class ProcessListModel {
             if selectedPID != oldValue {
                 isEnvironmentRevealed = false
                 isOpenFilesExpanded = false
+                isThreadsExpanded = false
                 niceDraft = nil
                 reniceError = nil
             }
@@ -33,6 +34,11 @@ final class ProcessListModel {
     /// selection change: a big app's hundreds of descriptors shouldn't stay open while you
     /// click through processes, and paths can be private too.
     var isOpenFilesExpanded = false
+    /// Whether the inspector's Threads group is expanded; collapsed on selection change, as
+    /// Open Files is (big apps run hundreds of threads).
+    var isThreadsExpanded = false
+    /// The selected process's threads, busiest first; nil when none selected or denied.
+    private(set) var selectedThreads: [ThreadInfo]?
     /// Detail for the selected process; nil when nothing selected or access is denied.
     private(set) var selectedDetails: ProcessDetails?
     /// Open network sockets for the selected process; empty when none selected or denied.
@@ -49,6 +55,7 @@ final class ProcessListModel {
     private let commandLineProvider: any ProcessCommandLineProviding
     private let priorityProvider: any ProcessPriorityProviding
     private let fileProvider: any ProcessFileProviding
+    private let threadProvider: any ProcessThreadProviding
     private let interval: Duration
 
     init(sampler: any ProcessSampling = ProcessSampler(),
@@ -58,6 +65,7 @@ final class ProcessListModel {
          commandLineProvider: any ProcessCommandLineProviding = ProcInfo(),
          priorityProvider: any ProcessPriorityProviding = ProcessPriority(),
          fileProvider: any ProcessFileProviding = ProcInfo(),
+         threadProvider: any ProcessThreadProviding = ProcInfo(),
          interval: Duration = .seconds(1)) {
         self.sampler = sampler
         self.terminator = terminator
@@ -66,6 +74,7 @@ final class ProcessListModel {
         self.commandLineProvider = commandLineProvider
         self.priorityProvider = priorityProvider
         self.fileProvider = fileProvider
+        self.threadProvider = threadProvider
         self.interval = interval
     }
 
@@ -105,6 +114,7 @@ final class ProcessListModel {
         selectedCommandLine = selectedPID.flatMap { commandLineProvider.commandLine(pid: $0) }
         selectedNice = selectedPID.flatMap { priorityProvider.nice(pid: $0) }
         selectedOpenFiles = selectedPID.flatMap { fileProvider.openFiles(pid: $0) }
+        selectedThreads = selectedPID.flatMap { threadProvider.threads(pid: $0) }.map(ThreadInfo.sortedForDisplay)
     }
 
     /// Set the nice value of process `pid` (already confirmed by the user). On success the
