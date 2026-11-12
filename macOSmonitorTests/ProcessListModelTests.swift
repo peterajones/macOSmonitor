@@ -36,6 +36,18 @@ final class FakeCommandLineProvider: ProcessCommandLineProviding, @unchecked Sen
     func commandLine(pid: pid_t) -> ProcessCommandLine? { lastPID = pid; return result }
 }
 
+final class FakePriorityProvider: ProcessPriorityProviding, @unchecked Sendable {
+    var current: [pid_t: Int32] = [:]
+    var setResult: ReniceResult = .success
+    private(set) var lastSet: (value: Int32, pid: pid_t)?
+    func nice(pid: pid_t) -> Int32? { current[pid] }
+    func setNice(_ value: Int32, pid: pid_t) -> ReniceResult {
+        lastSet = (value, pid)
+        if setResult == .success { current[pid] = value }
+        return setResult
+    }
+}
+
 @MainActor
 struct ProcessListModelTests {
     @Test func refreshOnceReplacesRowsFromSampler() async {
@@ -164,5 +176,83 @@ struct ProcessListModelTests {
 
         try? await Task.sleep(for: .milliseconds(80))
         #expect(sampler.callCount == countAtCancel, "loop kept sampling after cancellation")
+    }
+
+    // MARK: - Renice
+
+    @Test func refreshSelectionPublishesNiceAndClearsWhenNoSelection() {
+        let fake = FakePriorityProvider()
+        fake.current = [12: 3]
+        let model = ProcessListModel(sampler: FakeSampler(), priorityProvider: fake)
+
+        model.selectedPID = 12
+        model.refreshSelection()
+        #expect(model.selectedNice == 3)
+
+        model.selectedPID = nil
+        model.refreshSelection()
+        #expect(model.selectedNice == nil)
+    }
+
+    @Test func successfulReniceClearsTheDraftAndRereadsTheValue() {
+        let fake = FakePriorityProvider()
+        fake.current = [12: 0]
+        let model = ProcessListModel(sampler: FakeSampler(), priorityProvider: fake)
+        model.selectedPID = 12
+        model.refreshSelection()
+        model.niceDraft = 7
+        model.reniceError = "stale"
+
+        #expect(model.renice(12, name: "x", to: 7) == .success)
+        #expect(fake.lastSet?.value == 7 && fake.lastSet?.pid == 12)
+        #expect(model.selectedNice == 7)        // re-read, not left at 0
+        #expect(model.niceDraft == nil)
+        #expect(model.reniceError == nil)
+    }
+
+    @Test func failedReniceKeepsTheDraftAndShowsWhy() {
+        let fake = FakePriorityProvider()
+        fake.current = [12: 5]
+        fake.setResult = .needsAdmin
+        let model = ProcessListModel(sampler: FakeSampler(), priorityProvider: fake)
+        model.selectedPID = 12
+        model.refreshSelection()
+        model.niceDraft = 2
+
+        #expect(model.renice(12, name: "x", to: 2) == .needsAdmin)
+        #expect(model.selectedNice == 5)
+        #expect(model.niceDraft == 2)
+        #expect(model.reniceError == ReniceResult.needsAdmin.message(name: "x"))
+    }
+
+    @Test func changingSelectionDropsTheDraftAndError() {
+        let model = ProcessListModel(sampler: FakeSampler(), priorityProvider: FakePriorityProvider())
+        model.selectedPID = 12
+        model.niceDraft = 9
+        model.reniceError = "nope"
+        model.selectedPID = 12                  // same process: draft survives the 1 Hz re-set
+        #expect(model.niceDraft == 9)
+
+        model.selectedPID = 13                  // another process must never inherit the draft
+        #expect(model.niceDraft == nil)
+        #expect(model.reniceError == nil)
+    }
+
+    /// The dialog captures the PID; if the selection moved while it was open, the renice
+    /// still goes to the confirmed process but must not write its result onto the new one.
+    @Test func reniceForAProcessNoLongerSelectedLeavesTheInspectorAlone() {
+        let fake = FakePriorityProvider()
+        fake.current = [12: 0, 13: 4]
+        fake.setResult = .denied
+        let model = ProcessListModel(sampler: FakeSampler(), priorityProvider: fake)
+        model.selectedPID = 13
+        model.refreshSelection()
+        model.niceDraft = 6
+
+        #expect(model.renice(12, name: "old", to: 9) == .denied)
+        #expect(fake.lastSet?.pid == 12)
+        #expect(model.selectedNice == 4)
+        #expect(model.niceDraft == 6)
+        #expect(model.reniceError == nil)
     }
 }

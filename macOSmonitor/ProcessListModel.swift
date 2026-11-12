@@ -10,8 +10,21 @@ final class ProcessListModel {
     var selectedPID: pid_t? {
         // Collapse the environment when the selection moves, so revealing one process's
         // variables (which often hold secrets) never reveals another's.
-        didSet { if selectedPID != oldValue { isEnvironmentRevealed = false } }
+        didSet {
+            if selectedPID != oldValue {
+                isEnvironmentRevealed = false
+                niceDraft = nil
+                reniceError = nil
+            }
+        }
     }
+    /// The selected process's nice value; nil when none selected or unreadable.
+    private(set) var selectedNice: Int32?
+    /// The value the inspector's stepper shows before it is applied; nil means "the current
+    /// value". Cleared on selection change so one process's draft never applies to another.
+    var niceDraft: Int32?
+    /// The last renice failure for the selected process, shown inline in the inspector.
+    var reniceError: String?
     /// Whether the inspector's Environment section is expanded. Collapsed by default.
     /// Held here rather than as view @State so the reset rule above is testable.
     var isEnvironmentRevealed = false
@@ -27,6 +40,7 @@ final class ProcessListModel {
     private let detailProvider: any ProcessDetailProviding
     private let portProvider: any ProcessPortProviding
     private let commandLineProvider: any ProcessCommandLineProviding
+    private let priorityProvider: any ProcessPriorityProviding
     private let interval: Duration
 
     init(sampler: any ProcessSampling = ProcessSampler(),
@@ -34,12 +48,14 @@ final class ProcessListModel {
          detailProvider: any ProcessDetailProviding = ProcInfo(),
          portProvider: any ProcessPortProviding = ProcInfo(),
          commandLineProvider: any ProcessCommandLineProviding = ProcInfo(),
+         priorityProvider: any ProcessPriorityProviding = ProcessPriority(),
          interval: Duration = .seconds(1)) {
         self.sampler = sampler
         self.terminator = terminator
         self.detailProvider = detailProvider
         self.portProvider = portProvider
         self.commandLineProvider = commandLineProvider
+        self.priorityProvider = priorityProvider
         self.interval = interval
     }
 
@@ -77,6 +93,19 @@ final class ProcessListModel {
         refreshDetails()
         selectedPorts = selectedPID.map { portProvider.ports(pid: $0) } ?? []
         selectedCommandLine = selectedPID.flatMap { commandLineProvider.commandLine(pid: $0) }
+        selectedNice = selectedPID.flatMap { priorityProvider.nice(pid: $0) }
+    }
+
+    /// Set the nice value of process `pid` (already confirmed by the user). On success the
+    /// draft is cleared and the value re-read; on failure the error is kept for the inspector.
+    @discardableResult
+    func renice(_ pid: pid_t, name: String, to value: Int32) -> ReniceResult {
+        let result = priorityProvider.setNice(value, pid: pid)
+        guard pid == selectedPID else { return result }   // selection moved while confirming
+        reniceError = result.message(name: name)
+        if result == .success { niceDraft = nil }
+        selectedNice = priorityProvider.nice(pid: pid)
+        return result
     }
 
     /// The selected process's latest sampled row (nil when nothing is selected or it has
