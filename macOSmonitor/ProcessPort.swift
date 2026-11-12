@@ -26,22 +26,13 @@ protocol ProcessPortProviding: Sendable {
 
 extension ProcInfo: ProcessPortProviding {
     func ports(pid: pid_t) -> [ProcessPort] {
-        // Enumerate the process's file descriptors.
-        let needed = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, nil, 0)
-        guard needed > 0 else { return [] }
-        let capacity = Int(needed) / MemoryLayout<proc_fdinfo>.stride
-        var fds = [proc_fdinfo](repeating: proc_fdinfo(), count: capacity)
-        let written = fds.withUnsafeMutableBytes {
-            proc_pidinfo(pid, PROC_PIDLISTFDS, 0, $0.baseAddress, Int32($0.count))
-        }
-        guard written > 0 else { return [] }
-        let count = Int(written) / MemoryLayout<proc_fdinfo>.stride
+        guard let fds = fileDescriptors(pid: pid) else { return [] }
 
         var result: [ProcessPort] = []
-        for i in 0..<count where fds[i].proc_fdtype == UInt32(PROX_FDTYPE_SOCKET) {
+        for fd in fds where fd.proc_fdtype == UInt32(PROX_FDTYPE_SOCKET) {
             var info = socket_fdinfo()
             let size = Int32(MemoryLayout<socket_fdinfo>.size)
-            guard proc_pidfdinfo(pid, fds[i].proc_fd, PROC_PIDFDSOCKETINFO, &info, size) == size
+            guard proc_pidfdinfo(pid, fd.proc_fd, PROC_PIDFDSOCKETINFO, &info, size) == size
             else { continue }
             if let port = Self.makePort(info.psi) { result.append(port) }
         }

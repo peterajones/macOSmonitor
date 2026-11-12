@@ -3,7 +3,7 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [ ] List non-socket file descriptors and Unix-domain sockets in the inspector (from: docs/superpowers/specs/2026-07-06-ports-inspector-design.md)
+- [x] List non-socket file descriptors and Unix-domain sockets in the inspector (from: docs/superpowers/specs/2026-07-06-ports-inspector-design.md)
 - [ ] Add a configurable CPU-time format or a live CPU-time-rate display (from: docs/superpowers/specs/2026-07-05-cpu-time-column-design.md)
 
 ## Later

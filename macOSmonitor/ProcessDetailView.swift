@@ -72,6 +72,25 @@ struct ProcessDetailView: View {
                     }
                 }
                 Section {
+                    // Collapsed by default: big apps hold hundreds of descriptors, which would
+                    // push Environment far down the inspector.
+                    if let files = model.selectedOpenFiles {
+                        DisclosureGroup("Open Files (\(files.count))") {
+                            ForEach(files, id: \.fd) { file in
+                                Text(file.displayText)
+                                    .monospaced()
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                    .help(file.displayText)
+                                    .textSelection(.enabled)
+                            }
+                        }
+                    } else {
+                        Text("Open files unavailable (permission denied).")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Section {
                     // Collapsed by default, and again on every selection change (see
                     // ProcessListModel.selectedPID): environments often hold secrets (API
                     // tokens), so nothing shows until asked, e.g. while screen-sharing.

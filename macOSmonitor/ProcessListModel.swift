@@ -34,6 +34,8 @@ final class ProcessListModel {
     private(set) var selectedPorts: [ProcessPort] = []
     /// Arguments and environment for the selected process; nil when none selected or denied.
     private(set) var selectedCommandLine: ProcessCommandLine?
+    /// Open descriptors other than TCP/UDP sockets; nil when none selected or denied.
+    private(set) var selectedOpenFiles: [OpenFile]?
 
     private let sampler: any ProcessSampling
     private let terminator: any ProcessTerminating
@@ -41,6 +43,7 @@ final class ProcessListModel {
     private let portProvider: any ProcessPortProviding
     private let commandLineProvider: any ProcessCommandLineProviding
     private let priorityProvider: any ProcessPriorityProviding
+    private let fileProvider: any ProcessFileProviding
     private let interval: Duration
 
     init(sampler: any ProcessSampling = ProcessSampler(),
@@ -49,6 +52,7 @@ final class ProcessListModel {
          portProvider: any ProcessPortProviding = ProcInfo(),
          commandLineProvider: any ProcessCommandLineProviding = ProcInfo(),
          priorityProvider: any ProcessPriorityProviding = ProcessPriority(),
+         fileProvider: any ProcessFileProviding = ProcInfo(),
          interval: Duration = .seconds(1)) {
         self.sampler = sampler
         self.terminator = terminator
@@ -56,6 +60,7 @@ final class ProcessListModel {
         self.portProvider = portProvider
         self.commandLineProvider = commandLineProvider
         self.priorityProvider = priorityProvider
+        self.fileProvider = fileProvider
         self.interval = interval
     }
 
@@ -94,6 +99,7 @@ final class ProcessListModel {
         selectedPorts = selectedPID.map { portProvider.ports(pid: $0) } ?? []
         selectedCommandLine = selectedPID.flatMap { commandLineProvider.commandLine(pid: $0) }
         selectedNice = selectedPID.flatMap { priorityProvider.nice(pid: $0) }
+        selectedOpenFiles = selectedPID.flatMap { fileProvider.openFiles(pid: $0) }
     }
 
     /// Set the nice value of process `pid` (already confirmed by the user). On success the
