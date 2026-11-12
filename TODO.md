@@ -3,7 +3,6 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [x] Add a configurable CPU-time format or a live CPU-time-rate display (from: docs/superpowers/specs/2026-07-05-cpu-time-column-design.md)
 
 ## Later
 - [ ] Add a GPU utilisation/memory provider and surface it in the vitals and Performance views (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
