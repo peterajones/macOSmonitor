@@ -20,7 +20,7 @@ struct MeterBar: View {
 
     /// Clamps to 0...1, mapping non-finite input to 0 so a bad fraction can never
     /// produce a negative, infinite, or NaN frame.
-    static func clampedFraction(_ value: Double) -> Double {
+    nonisolated static func clampedFraction(_ value: Double) -> Double {
         guard value.isFinite else { return 0 }
         return min(max(value, 0), 1)
     }
@@ -30,7 +30,7 @@ struct MeterBar: View {
     /// The tolerance matters because fractions are computed and carry floating-point
     /// noise: 3 * 0.05 is 0.15000000000000002, times 20 is 3.0000000000000004, and a
     /// bare round-up would light 4 segments for a true 15%.
-    static func litSegments(fraction: Double) -> Int {
+    nonisolated static func litSegments(fraction: Double) -> Int {
         let exact = clampedFraction(fraction) * Double(segmentCount)
         return max(0, Int((exact - 1e-9).rounded(.up)))
     }
