@@ -8,6 +8,7 @@ _Single source of truth for unfinished work in this project. Tick an item when i
 - [ ] Decide how to distribute the app: signing, sandboxing and notarization (from: docs/superpowers/specs/2026-07-02-process-dashboard-design.md)
 
 ## Later
+- [ ] Design round: discuss with Peter, then do a pass of design tweaks over the UI once the functionality has settled (he doesn't yet consider the UI up to standard; scope to be agreed) (from: Peter, 2026-11-13)
 
 ## Undecided
 - [ ] Decide whether to pursue the shelved ESF activity/event feed and control-panel anchors (from: docs/superpowers/specs/2026-07-02-process-dashboard-design.md)

@@ -1,9 +1,20 @@
 # macOSmonitor
 
 A macOS Activity-Monitor-style app: a Summary dashboard (the default surface), a live process
-table with an inspector, and a Performance view (sidebar meters + CPU/Memory/Network/Disk
-history graphs). Five themes; meters are segmented LED bars.
+table with an inspector, a Ports table, and a Performance view (sidebar meters + CPU, GPU,
+Memory, Network, Disk, Thermal, Energy and Battery panels). A menu-bar item, and an optional
+root helper for other users' processes. Five themes; meters are segmented LED bars.
 Swift 6, SwiftUI, no third-party dependencies.
+
+## Design status: functionality first, a design round later
+
+So far the work has been about **what the Mac can report**, not how it looks. Peter doesn't yet
+consider the UI up to the standard he wants. A round of design tweaks is planned once the app
+works well; its scope is **to be discussed with Peter** (TODO.md). Until then:
+- Keep new UI consistent with the existing patterns (panel layout, `MeterBar`, themes) rather
+  than restyling as you go.
+- Don't start visual redesigns he hasn't asked for. Note ideas for the design round in TODO.md
+  instead.
 
 ## Build and test
 
