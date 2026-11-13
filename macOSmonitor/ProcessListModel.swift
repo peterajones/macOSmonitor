@@ -64,6 +64,15 @@ final class ProcessListModel {
     /// The reading the rates are measured from, tagged with its process so a new selection
     /// never takes a rate against another process's counters.
     private var lastUsage: (pid: pid_t, usage: ProcessResourceUsage, nanos: UInt64)?
+    /// Network traffic over the selected process's open sockets; nil when none selected or the
+    /// framework is missing.
+    private(set) var selectedNetwork: ProcessNetworkUsage?
+    /// Per-second rates since the previous tick; nil on the first tick after a selection change.
+    private(set) var selectedNetworkRates: SocketRates?
+    /// False when per-socket counts can't be read (the private framework is missing).
+    private(set) var isNetworkAvailable = true
+    /// The reading the network rates are measured from.
+    @ObservationIgnored private var lastNetwork: (usage: ProcessNetworkUsage, nanos: UInt64)?
     /// Detail for the selected process; nil when nothing selected or access is denied.
     private(set) var selectedDetails: ProcessDetails?
     /// Open network sockets for the selected process; empty when none selected or denied.
@@ -82,6 +91,7 @@ final class ProcessListModel {
     private let fileProvider: any ProcessFileProviding
     private let threadProvider: any ProcessThreadProviding
     private let usageProvider: any ProcessResourceUsageProviding
+    private let networkProvider: any SocketTrafficProviding
     private let now: @Sendable () -> UInt64
     private let interval: Duration
 
@@ -94,6 +104,7 @@ final class ProcessListModel {
          fileProvider: any ProcessFileProviding = ProcInfo(),
          threadProvider: any ProcessThreadProviding = ProcInfo(),
          usageProvider: any ProcessResourceUsageProviding = ProcInfo(),
+         networkProvider: any SocketTrafficProviding = NStatSocketTraffic(),
          now: @escaping @Sendable () -> UInt64 = { DispatchTime.now().uptimeNanoseconds },
          interval: Duration = .seconds(1)) {
         self.sampler = sampler
@@ -105,6 +116,7 @@ final class ProcessListModel {
         self.fileProvider = fileProvider
         self.threadProvider = threadProvider
         self.usageProvider = usageProvider
+        self.networkProvider = networkProvider
         self.now = now
         self.interval = interval
     }
@@ -118,6 +130,7 @@ final class ProcessListModel {
         let live = Set(rows.map(\.pid))
         if !selectedPIDs.isSubset(of: live) { selectedPIDs.formIntersection(live) }
         refreshSelection()
+        await refreshNetwork()
     }
 
     /// The `limit` highest-CPU rows, for the Summary dashboard's process card.
@@ -163,6 +176,35 @@ final class ProcessListModel {
         selectedOpenFiles = selectedPID.flatMap { fileProvider.openFiles(pid: $0) }
         selectedThreads = selectedPID.flatMap { threadProvider.threads(pid: $0) }.map(ThreadInfo.sortedForDisplay)
         refreshUsage()
+    }
+
+    /// Network totals and rates for the selected process. Async (the framework answers on its
+    /// own queue), so it runs after the synchronous `refreshSelection`.
+    func refreshNetwork() async {
+        guard let pid = selectedPID else {
+            selectedNetwork = nil
+            selectedNetworkRates = nil
+            lastNetwork = nil
+            return
+        }
+        guard let readings = await networkProvider.read() else {
+            isNetworkAvailable = false
+            selectedNetwork = nil
+            selectedNetworkRates = nil
+            lastNetwork = nil
+            return
+        }
+        isNetworkAvailable = true
+        guard pid == selectedPID else { return }        // selection moved while reading
+        let usage = ProcessNetworkUsage(pid: pid, readings: readings)
+        let nanos = now()
+        if let last = lastNetwork, nanos > last.nanos {
+            selectedNetworkRates = usage.rates(since: last.usage, seconds: Double(nanos - last.nanos) / 1_000_000_000)
+        } else {
+            selectedNetworkRates = nil
+        }
+        selectedNetwork = usage
+        lastNetwork = (usage, nanos)
     }
 
     private func refreshUsage() {

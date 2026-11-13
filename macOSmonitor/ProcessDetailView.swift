@@ -62,6 +62,21 @@ struct ProcessDetailView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                Section("Network") {
+                    if let network = model.selectedNetwork, network.socketCount > 0 {
+                        LabeledContent("Received", value: SocketCounts.text(network.counts.rxBytes, model.selectedNetworkRates?.rxPerSec))
+                        LabeledContent("Sent", value: SocketCounts.text(network.counts.txBytes, model.selectedNetworkRates?.txPerSec))
+                        Text("Totals cover its \(network.socketCount) open \(network.socketCount == 1 ? "socket" : "sockets"); closed ones aren’t counted.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else if !model.isNetworkAvailable {
+                        Text("Network usage unavailable.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("No open sockets visible.")
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Section("Arguments") {
                     // argv[0] is dropped: the Path row already names the executable.
                     if let arguments = model.selectedCommandLine?.arguments {

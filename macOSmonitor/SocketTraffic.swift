@@ -39,6 +39,14 @@ struct SocketCounts: Hashable, Sendable {
     let txBytes: UInt64
 }
 
+extension SocketCounts {
+    /// "18.5 MB  ·  2.1 KB/s"; the rate reads "—" until there is one.
+    static func text(_ bytes: UInt64, _ perSec: Double?) -> String {
+        let total = ByteCountFormatter.string(fromByteCount: Int64(clamping: bytes), countStyle: .file)
+        return "\(total)  ·  \(perSec.map(SystemVitals.rate) ?? "—")"
+    }
+}
+
 /// Bytes per second over the last interval.
 struct SocketRates: Hashable, Sendable {
     let rxPerSec: Double
@@ -91,9 +99,7 @@ extension PortRow {
     var sentSortKey: Int64 { counts.map { Int64(clamping: $0.txBytes) } ?? -1 }
 
     private static func text(_ bytes: UInt64?, _ perSec: Double?) -> String {
-        guard let bytes else { return "—" }
-        let total = ByteCountFormatter.string(fromByteCount: Int64(clamping: bytes), countStyle: .file)
-        return "\(total)  ·  \(perSec.map(SystemVitals.rate) ?? "—")"
+        bytes.map { SocketCounts.text($0, perSec) } ?? "—"
     }
 }
 
