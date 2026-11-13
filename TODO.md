@@ -4,6 +4,9 @@ _Single source of truth for unfinished work in this project. Tick an item when i
 
 ## Next
 - [x] Check the remaining test code and any app-side code for other Process.waitUntilExit() calls and move them to the new ChildProcess helper. (from: review harness)
+- [ ] Support multi-select termination (from: docs/superpowers/specs/2026-07-02-process-termination-design.md)
+- [ ] Add a ports column or dedicated Network tab for open sockets (from: docs/superpowers/specs/2026-07-06-ports-inspector-design.md)
+- [ ] Add per-socket byte counts and reverse-DNS of remote addresses (from: docs/superpowers/specs/2026-07-06-ports-inspector-design.md)
 
 ## Later
 - [ ] Show per-process network I/O; needs the private NetworkStatistics framework (from: docs/superpowers/specs/2026-07-02-process-detail-inspector-design.md)
@@ -11,9 +14,6 @@ _Single source of truth for unfinished work in this project. Tick an item when i
 - [ ] Add an Energy panel with power/wattage draw and per-app energy impact; probed 2026-11-12: without root, IOReport gives GPU energy only (CPU, ANE, DRAM read 0), so system power needs the privileged helper (from: docs/superpowers/specs/2026-08-26-performance-view-design.md)
 - [ ] Add NPU utilisation; probed 2026-11-12: IOReport's ANE energy reads 0 without root, so it needs the privileged helper (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
 - [ ] Build a privileged XPC helper (SMAppService) for full detail on, and termination of, all processes (from: docs/superpowers/specs/2026-07-02-process-dashboard-design.md)
-- [ ] Support multi-select termination (from: docs/superpowers/specs/2026-07-02-process-termination-design.md)
-- [ ] Add per-socket byte counts and reverse-DNS of remote addresses (from: docs/superpowers/specs/2026-07-06-ports-inspector-design.md)
-- [ ] Add a ports column or dedicated Network tab for open sockets (from: docs/superpowers/specs/2026-07-06-ports-inspector-design.md)
 
 ## Undecided
 - [ ] Decide whether the Summary grid needs a reflow rule at the 900×500 minimum window (from: docs/superpowers/specs/2026-08-28-summary-dashboard-design.md)
