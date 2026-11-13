@@ -49,6 +49,12 @@ struct PortsView: View {
                 TableColumn("Remote", value: \.remoteText) { row in
                     Text(row.remoteText).monospacedDigit().themedPortCell(theme)
                 }
+                TableColumn("Remote Host") { row in
+                    Text(model.hostName(for: row) ?? "")
+                        .lineLimit(1).truncationMode(.middle)
+                        .help(model.hostName(for: row) ?? "")
+                        .themedPortCell(theme)
+                }
                 TableColumn("State", value: \.stateText) { row in
                     Text(row.stateText).themedPortCell(theme)
                 }
@@ -64,13 +70,14 @@ struct PortsView: View {
                 }
             }
         }
-        .searchable(text: $searchText, placement: .toolbar, prompt: "Process, PID, port, address")
+        .searchable(text: $searchText, placement: .toolbar, prompt: "Process, PID, port, address, host")
         .task { await model.run() }
     }
 
     /// Filtered and searched; listening first (the sampler's order) until a column is clicked.
     private var rows: [PortRow] {
-        let visible = PortRow.visible(model.rows, filter: filter, searchText: searchText)
+        let visible = PortRow.visible(model.rows, filter: filter, searchText: searchText,
+                                      hostNames: model.hostNames)
         return sortOrder.isEmpty ? visible : visible.sorted(using: sortOrder)
     }
 }

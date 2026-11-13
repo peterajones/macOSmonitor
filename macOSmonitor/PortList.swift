@@ -31,16 +31,19 @@ struct PortRow: Identifiable, Hashable, Sendable {
     var localPortKey: Int { Int(port.localPort) }
     var protocolKey: String { port.protocolName }
 
-    /// Case-insensitive substring match over everything the table shows.
-    func matches(_ searchText: String) -> Bool {
+    /// Case-insensitive substring match over everything the table shows, including the
+    /// remote host's name when it has been resolved.
+    func matches(_ searchText: String, hostName: String? = nil) -> Bool {
         let needle = searchText.trimmingCharacters(in: .whitespaces)
         guard !needle.isEmpty else { return true }
-        return [processName, String(pid), port.protocolName, localText, remoteText, stateText]
+        return [processName, String(pid), port.protocolName, localText, remoteText, stateText, hostName ?? ""]
             .contains { $0.localizedCaseInsensitiveContains(needle) }
     }
 
-    /// The rows the table shows for this filter and search.
-    static func visible(_ rows: [PortRow], filter: PortFilter, searchText: String) -> [PortRow] {
+    /// The rows the table shows for this filter and search; `hostNames` maps remote
+    /// addresses to their reverse-DNS names.
+    static func visible(_ rows: [PortRow], filter: PortFilter, searchText: String,
+                        hostNames: [String: String] = [:]) -> [PortRow] {
         rows.filter { row in
             switch filter {
             case .all:       true
@@ -48,7 +51,7 @@ struct PortRow: Identifiable, Hashable, Sendable {
             case .connected: row.isConnected
             }
         }
-        .filter { $0.matches(searchText) }
+        .filter { row in row.matches(searchText, hostName: row.port.remoteAddress.flatMap { hostNames[$0] }) }
     }
 }
 
@@ -113,23 +116,54 @@ actor PortsSampler: PortsSampling {
 @Observable
 final class PortsModel {
     private(set) var rows: [PortRow] = []
+    /// Reverse-DNS names of the rows' remote addresses, where they have one.
+    private(set) var hostNames: [String: String] = [:]
 
     private let sampler: any PortsSampling
+    private let dns: ReverseDNS
     private let interval: Duration
 
-    init(sampler: any PortsSampling = PortsSampler(), interval: Duration = .seconds(2)) {
+    init(sampler: any PortsSampling = PortsSampler(), dns: ReverseDNS = ReverseDNS(),
+         interval: Duration = .seconds(2)) {
         self.sampler = sampler
+        self.dns = dns
         self.interval = interval
     }
 
+    /// One sample and its host names, in order. `run()` doesn't use this: there the names
+    /// are looked up beside the loop, so the table never waits on DNS.
     func refreshOnce() async {
         rows = await sampler.sample()
+        await resolveHostNames()
+    }
+
+    /// Looks up the current rows' remote addresses (new ones only: answers are cached).
+    func resolveHostNames() async {
+        hostNames = await dns.resolve(Set(rows.compactMap(\.port.remoteAddress)))
+    }
+
+    /// The remote host's name for `row`, or nil when unresolved or there is no peer.
+    func hostName(for row: PortRow) -> String? {
+        row.port.remoteAddress.flatMap { hostNames[$0] }
     }
 
     func run() async {
+        // A lookup can block for seconds (a resolver timing out), so names resolve in a task
+        // of their own, one batch at a time, and fill in on a later tick.
+        var lookups: Task<Void, Never>?
+        defer { lookups?.cancel() }
         while !Task.isCancelled {
-            await refreshOnce()
+            rows = await sampler.sample()
+            if !isResolving {
+                isResolving = true
+                lookups = Task { [weak self] in
+                    await self?.resolveHostNames()
+                    self?.isResolving = false
+                }
+            }
             try? await Task.sleep(for: interval)
         }
     }
+
+    @ObservationIgnored private var isResolving = false
 }
