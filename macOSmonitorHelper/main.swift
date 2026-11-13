@@ -57,6 +57,16 @@ extension HelperService {
                                               usage: proc.usage(pid: pid))
         reply(HelperWire.encodeInspection(inspection))
     }
+
+    func allPorts(reply: @escaping (Data) -> Void) {
+        let proc = ProcInfo()
+        var ports: [pid_t: [ProcessPort]] = [:]
+        for pid in proc.listPIDs() {
+            let sockets = proc.ports(pid: pid)
+            if !sockets.isEmpty { ports[pid] = sockets }
+        }
+        reply(HelperWire.encodePorts(ports))
+    }
 }
 
 final class ListenerDelegate: NSObject, NSXPCListenerDelegate {

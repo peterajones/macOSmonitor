@@ -79,6 +79,9 @@ over the XPC Mach service `ca.peter-jones.macOSmonitor.helper`.
   asks only when its own read of the selection is denied. **It never carries an environment**
   (stripped in both `PrivilegedInspection` initialisers): macOS shows a user only their own
   processes' environments, and the helper must not widen that.
+- **Ports (protocol v3):** `allPorts` returns every process's sockets in one call (the app can't tell
+  a denied socket read from a process with none). `PortsSampler(privileged:)` defaults to nil; the
+  app's own read wins where it has anything, the helper's fills in the rest.
 - Check it's running: `launchctl print system/ca.peter-jones.macOSmonitor.helper`.
 
 **Samplers are `actor`s**, take an injected `now: () -> UInt64` clock so rate arithmetic is

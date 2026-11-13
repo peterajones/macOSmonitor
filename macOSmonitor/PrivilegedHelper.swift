@@ -14,6 +14,9 @@ protocol PrivilegedProcessAccess: Sendable {
     /// The inspector's data for a process the app may not read; nil when the helper isn't
     /// available or the process is gone.
     func inspect(pid: pid_t) async -> PrivilegedInspection?
+    /// Every process's sockets, read as root; nil when the helper isn't available (or is an
+    /// older version without this call).
+    func allPorts() async -> [pid_t: [ProcessPort]]?
 }
 
 /// Talks to the installed helper over XPC. Every call checks the registration first, so an
@@ -68,6 +71,24 @@ final class PrivilegedHelperClient: PrivilegedProcessAccess, @unchecked Sendable
             }
             proxy.inspect(pid: pid) { data in
                 if once.claim() { continuation.resume(returning: HelperWire.decodeInspection(data)) }
+            }
+        }
+    }
+
+    func allPorts() async -> [pid_t: [ProcessPort]]? {
+        guard isEnabled else { return nil }
+        return await withCheckedContinuation { continuation in
+            let once = Once()
+            let proxy = connect().remoteObjectProxyWithErrorHandler { [weak self] _ in
+                self?.reset()
+                if once.claim() { continuation.resume(returning: nil) }
+            } as? PrivilegedHelperProtocol
+            guard let proxy else {
+                if once.claim() { continuation.resume(returning: nil) }
+                return
+            }
+            proxy.allPorts { data in
+                if once.claim() { continuation.resume(returning: HelperWire.decodePorts(data)) }
             }
         }
     }

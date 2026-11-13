@@ -51,6 +51,7 @@ final class FakeInspectingHelper: PrivilegedProcessAccess, @unchecked Sendable {
         await whileAnswering?()
         return inspections[pid]
     }
+    func allPorts() async -> [pid_t: [ProcessPort]]? { nil }
 }
 
 @MainActor

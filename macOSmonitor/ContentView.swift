@@ -12,7 +12,7 @@ struct ContentView: View {
     @State private var batteryModel = BatteryModel()
     /// Sampled only while the Ports surface shows (its view runs the loop); held here so the
     /// last sample is on screen at once when you come back.
-    @State private var portsModel = PortsModel()
+    @State private var portsModel = PortsModel(sampler: PortsSampler(privileged: PrivilegedHelperClient.shared))
     @State private var surface: Surface? = .summary
     @AppStorage("themeID") private var themeID: String = Theme.system.id
 

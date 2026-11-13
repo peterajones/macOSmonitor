@@ -9,7 +9,7 @@ enum HelperConstants {
     static let machServiceName = "ca.peter-jones.macOSmonitor.helper"
     static let plistName = "ca.peter-jones.macOSmonitor.helper.plist"
     /// Bumped when the protocol changes, so the app can tell an out-of-date helper.
-    static let protocolVersion = 2   // 2: inspect(pid:)
+    static let protocolVersion = 3   // 2: inspect(pid:); 3: allPorts
 
     /// The only client the helper obeys: this app, signed by Peter's team. Without this, any
     /// process on the Mac could ask a root daemon to kill things.
@@ -52,6 +52,10 @@ struct ProcTaskSample: Sendable {
     func taskSamples(forPIDs pids: [NSNumber], reply: @escaping (Data) -> Void)
     /// Everything the inspector shows for `pid`, as `HelperWire.encodeInspection` data.
     func inspect(pid: Int32, reply: @escaping (Data) -> Void)
+    /// Every process's TCP/UDP sockets, as `HelperWire.encodePorts` data (processes with none
+    /// left out). One call for all of them: the app can't tell which processes it's denied,
+    /// since a denied read and a process with no sockets both come back empty.
+    func allPorts(reply: @escaping (Data) -> Void)
 }
 
 /// What the inspector shows for one process, read as root by the helper with the same
@@ -158,6 +162,22 @@ enum HelperWire {
 
     static func decodeInspection(_ data: Data) -> PrivilegedInspection? {
         try? JSONDecoder().decode(PrivilegedInspection.self, from: data)
+    }
+
+    /// pid → sockets, as JSON keyed by the PID's decimal string.
+    static func encodePorts(_ ports: [pid_t: [ProcessPort]]) -> Data {
+        let plain = Dictionary(uniqueKeysWithValues: ports.map { (String($0.key), $0.value) })
+        return (try? JSONEncoder().encode(plain)) ?? Data()
+    }
+
+    static func decodePorts(_ data: Data) -> [pid_t: [ProcessPort]]? {
+        guard let plain = try? JSONDecoder().decode([String: [ProcessPort]].self, from: data) else { return nil }
+        var ports: [pid_t: [ProcessPort]] = [:]
+        for (key, sockets) in plain {
+            guard let pid = pid_t(key) else { continue }
+            ports[pid] = sockets
+        }
+        return ports
     }
 
     static func decodeSamples(_ data: Data) -> [pid_t: ProcTaskSample]? {

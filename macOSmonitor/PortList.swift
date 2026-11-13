@@ -79,23 +79,32 @@ protocol PortsSampling: Sendable {
 }
 
 /// Lists every process's open TCP/UDP sockets. Processes we may not read (other users',
-/// root's) contribute none: their descriptors need the privileged helper.
+/// root's) come from the privileged helper when it's running, and are missing otherwise.
 actor PortsSampler: PortsSampling {
     private let procInfo: any ProcInfoProviding
     private let ports: any ProcessPortProviding
+    /// Nil by default so tests never reach an installed helper; the app passes the client.
+    private let privileged: (any PrivilegedProcessAccess)?
 
-    init(procInfo: any ProcInfoProviding = ProcInfo(), ports: any ProcessPortProviding = ProcInfo()) {
+    init(procInfo: any ProcInfoProviding = ProcInfo(), ports: any ProcessPortProviding = ProcInfo(),
+         privileged: (any PrivilegedProcessAccess)? = nil) {
         self.procInfo = procInfo
         self.ports = ports
+        self.privileged = privileged
     }
 
     /// Listening sockets first (the "what's on port 3000?" question), each group by local
     /// port, then PID.
-    func sample() -> [PortRow] {
+    ///
+    /// Our own read wins where it has anything (it's the fresher one); the helper's fills in the
+    /// rest. PIDs only the helper saw have exited since, so they're not listed.
+    func sample() async -> [PortRow] {
+        let fromHelper = await privileged?.allPorts() ?? [:]
         var rows: [PortRow] = []
         var seen: [String: Int] = [:]
         for pid in procInfo.listPIDs() {
-            let sockets = ports.ports(pid: pid)
+            let own = ports.ports(pid: pid)
+            let sockets = own.isEmpty ? fromHelper[pid] ?? [] : own
             guard !sockets.isEmpty else { continue }
             let name = procInfo.name(pid: pid)
             for socket in sockets {
