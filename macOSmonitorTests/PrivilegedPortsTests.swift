@@ -55,6 +55,18 @@ struct PrivilegedPortsTests {
         #expect(none.map(\.pid) == [42])
     }
 
+    /// A process neither we nor the helper can read (or one with no sockets) adds no row, and an
+    /// empty answer from the helper is not a failure: our own sockets still list.
+    @Test func aProcessWithSocketsFromNeitherSourceAddsNoRow() async {
+        let local = FakePortsByPID()
+        local.ports = [42: [node]]
+        let helper = FakePortsHelper()
+        helper.ports = [:]
+        let rows = await PortsSampler(procInfo: procs(), ports: local, privileged: helper).sample()
+        #expect(rows.map(\.pid) == [42])
+        #expect(helper.askedForPorts == 1)
+    }
+
     @Test func portsRoundTripThroughTheWireFormat() throws {
         let sent: [pid_t: [ProcessPort]] = [20: [mdns], 42: [node, stale]]
         let decoded = try #require(HelperWire.decodePorts(HelperWire.encodePorts(sent)))

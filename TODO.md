@@ -3,9 +3,9 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [ ] Add tests for PortsSampler's helper-merge rule in a PortsSampler test file: the app's own read wins where non-empty, the helper fills the rest, PIDs only the helper saw are dropped, and it falls back cleanly with no helper or an older protocol. (from: review harness)
-- [ ] Add a test that the helper protocol v4 energy payload ([resident, cpu, energy?]) round-trips through HelperShared, and that the app's merge keeps working against a v3 helper that sends no energy value, including the case where the app falls back to its own reading. (from: review harness)
-- [ ] Add tests for the Energy panel's display behaviour: which power rows (adapter, battery, GPU) appear or hide when the Mac lacks an SMC key or has no battery, and that the panel degrades cleanly when the GPU Energy counter is unavailable. (from: review harness)
+- [x] Add tests for PortsSampler's helper-merge rule in a PortsSampler test file: the app's own read wins where non-empty, the helper fills the rest, PIDs only the helper saw are dropped, and it falls back cleanly with no helper or an older protocol. (from: review harness)
+- [x] Add a test that the helper protocol v4 energy payload ([resident, cpu, energy?]) round-trips through HelperShared, and that the app's merge keeps working against a v3 helper that sends no energy value, including the case where the app falls back to its own reading. (from: review harness)
+- [x] Add tests for the Energy panel's display behaviour: which power rows (adapter, battery, GPU) appear or hide when the Mac lacks an SMC key or has no battery, and that the panel degrades cleanly when the GPU Energy counter is unavailable. (from: review harness)
 
 ## Later
 

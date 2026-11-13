@@ -57,6 +57,16 @@ struct PowerSamplerTests {
         #expect(await sampler.sample() == nil)
     }
 
+    @Test func smcAloneIsAReadingWithNoGPU() async {
+        let (sampler, smc, _, clock) = make()                    // GPU counter unavailable
+        smc.next = SMCPower(systemWatts: 12, adapterWatts: 0, batteryWatts: 12)
+        _ = await sampler.sample()
+        clock.nanos = 1_000_000_000
+        let reading = await sampler.sample()
+        #expect(reading?.systemWatts == 12)
+        #expect(reading?.gpuWatts == nil)
+    }
+
     @Test func gpuAloneIsStillAReading() async {
         let (sampler, _, gpu, clock) = make()
         gpu.nanojoules = 0
@@ -83,6 +93,28 @@ struct SMCPowerTests {
         #expect(SMCPower.watts(.infinity) == nil)
         #expect(SMCPower.watts(5_000) == nil)
         #expect(SMCPower.watts(nil) == nil)
+    }
+
+    /// A Mac publishes some keys and not others (no battery on a desktop): each missing key is
+    /// its own nil, and only a Mac with none of them has no SMC reading at all.
+    @Test func missingKeysAreNilAndNoKeysIsNoReading() {
+        #expect(SMCPower(rawSystem: 20, rawAdapter: 21, rawBattery: nil)
+                == SMCPower(systemWatts: 20, adapterWatts: 21, batteryWatts: nil))
+        #expect(SMCPower(rawSystem: nil, rawAdapter: nil, rawBattery: -3)?.batteryWatts == 3)
+        #expect(SMCPower(rawSystem: nil, rawAdapter: .nan, rawBattery: nil) == nil)
+    }
+
+    /// The panel lists only what this Mac reports: no Battery row on a desktop, no GPU row
+    /// when the counter is unavailable. System total always shows, as "—" until read.
+    @Test func panelRowsHideWhatThisMacDoesNotReport() {
+        let desktop = PowerReading(systemWatts: 30, adapterWatts: 31, batteryWatts: nil, gpuWatts: nil)
+        #expect(EnergyPanel.facts(desktop) == [EnergyFact(label: "System total", value: "30.0 W"),
+                                              EnergyFact(label: "From power adapter", value: "31.0 W")])
+        let laptop = PowerReading(systemWatts: 12, adapterWatts: 0, batteryWatts: 12, gpuWatts: 1.5)
+        #expect(EnergyPanel.facts(laptop).map(\.label)
+                == ["System total", "From power adapter", "Battery, in or out", "GPU"])
+        #expect(EnergyPanel.facts(laptop)[1].value == "0.0 W")         // on battery: shown as 0, not hidden
+        #expect(EnergyPanel.facts(nil) == [EnergyFact(label: "System total", value: "—")])
     }
 
     @Test func fourCharacterCodesPackBigEndian() {

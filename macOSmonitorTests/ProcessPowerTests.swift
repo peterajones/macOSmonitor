@@ -53,6 +53,30 @@ struct ProcessPowerTests {
         #expect(await sampler.sample().first?.powerWatts == 0.25)
     }
 
+    /// A protocol-3 helper sends no energy: its processes still get memory and CPU, just no
+    /// power, and our own processes keep theirs (read locally, never from the helper).
+    @Test func aHelperWithoutEnergyStillFillsMemoryAndCPU() async {
+        let procs = FakeProcInfo()
+        procs.pids = [1, 42]
+        procs.results = [42: energy(0)]                                // 1 is denied to us
+        let helper = FakePrivilegedAccess()
+        helper.samples = [1: ProcTaskSample(residentBytes: 9_000, cpuTimeNanos: 0),
+                          42: energy(999_000_000_000)]                 // must not override ours
+        let clock = Clock()
+        let sampler = ProcessSampler(source: procs, apps: FakeRegularApps(), privileged: helper,
+                                     now: { clock.nanos })
+        _ = await sampler.sample()
+        procs.results = [42: energy(500_000_000)]
+        helper.samples[1] = ProcTaskSample(residentBytes: 9_000, cpuTimeNanos: 1_000_000_000)
+        clock.nanos = 1_000_000_000
+        let rows = await sampler.sample()
+        let root = rows.first { $0.pid == 1 }
+        #expect(root?.memoryBytes == 9_000)
+        #expect(root?.cpuPercent == 100)
+        #expect(root?.powerWatts == nil)
+        #expect(rows.first { $0.pid == 42 }?.powerWatts == 0.5)
+    }
+
     @Test func samplesCarryEnergyOverTheWireAndOldPayloadsStillDecode() throws {
         let decoded = try #require(HelperWire.decodeSamples(HelperWire.encodeSamples([7: energy(123)])))
         #expect(decoded[7]?.energyNanojoules == 123)

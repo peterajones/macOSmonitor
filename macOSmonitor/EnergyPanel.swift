@@ -1,5 +1,12 @@
 import SwiftUI
 
+/// One labelled figure in the Energy panel.
+struct EnergyFact: Equatable, Identifiable, Sendable {
+    let label: String
+    let value: String
+    var id: String { label }
+}
+
 /// The Energy Performance panel: whole-system power over the last 60 seconds, where it
 /// comes from (adapter, battery), the GPU's share, and the processes drawing the most.
 struct EnergyPanel: View {
@@ -12,6 +19,20 @@ struct EnergyPanel: View {
     /// otherwise the last minute's peak. nonisolated: called from tests off the main actor.
     nonisolated static func range(_ history: MetricHistory) -> ClosedRange<Double> {
         MetricScale.autoscaled([history], floor: 10)
+    }
+
+    /// The panel's figures: System total always, the rest only where this Mac reports them
+    /// (no Battery row on a desktop, no GPU row without the counter). Adapter power on battery
+    /// is a real 0, so it stays.
+    nonisolated static func facts(_ power: PowerReading?) -> [EnergyFact] {
+        var facts = [EnergyFact(label: "System total", value: PowerReading.text(power?.systemWatts))]
+        let optional: [(String, Double?)] = [("From power adapter", power?.adapterWatts),
+                                              ("Battery, in or out", power?.batteryWatts),
+                                              ("GPU", power?.gpuWatts)]
+        for (label, watts) in optional where watts != nil {
+            facts.append(EnergyFact(label: label, value: PowerReading.text(watts)))
+        }
+        return facts
     }
 
     nonisolated static func meterFraction(_ watts: Double?, history: MetricHistory) -> Double {
@@ -46,10 +67,9 @@ struct EnergyPanel: View {
             .foregroundStyle(theme.secondaryText)
 
             Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 6) {
-                fact("System total", PowerReading.text(model.power?.systemWatts))
-                fact("From power adapter", PowerReading.text(model.power?.adapterWatts))
-                fact("Battery, in or out", PowerReading.text(model.power?.batteryWatts))
-                fact("GPU", PowerReading.text(model.power?.gpuWatts))
+                ForEach(Self.facts(model.power)) { fact in
+                    self.fact(fact.label, fact.value)
+                }
             }
             .padding(.top, 8)
 

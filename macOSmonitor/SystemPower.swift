@@ -28,6 +28,20 @@ struct SMCPower: Equatable, Sendable {
     let adapterWatts: Double?
     let batteryWatts: Double?
 
+    init(systemWatts: Double?, adapterWatts: Double?, batteryWatts: Double?) {
+        self.systemWatts = systemWatts
+        self.adapterWatts = adapterWatts
+        self.batteryWatts = batteryWatts
+    }
+
+    /// From raw SMC floats (nil for a key this Mac doesn't publish). Nil when none of them is
+    /// a plausible reading.
+    init?(rawSystem: Double?, rawAdapter: Double?, rawBattery: Double?) {
+        self.init(systemWatts: Self.watts(rawSystem), adapterWatts: Self.watts(rawAdapter),
+                  batteryWatts: Self.watts(rawBattery))
+        if systemWatts == nil && adapterWatts == nil && batteryWatts == nil { return nil }
+    }
+
     /// A raw SMC float as watts. The SMC answers keys it doesn't measure with NaN or junk, and
     /// some Macs report battery discharge as negative: magnitude only, and only plausible ones.
     /// (NaN and infinity fail the range check, since they compare false.)
@@ -100,10 +114,7 @@ final class AppleSMCPower: SMCPowerProviding, @unchecked Sendable {
     func read() -> SMCPower? {
         lock.lock(); defer { lock.unlock() }
         guard open() else { return nil }
-        let power = SMCPower(systemWatts: SMCPower.watts(float("PSTR")),
-                             adapterWatts: SMCPower.watts(float("PDTR")),
-                             batteryWatts: SMCPower.watts(float("PPBR")))
-        return power.systemWatts == nil && power.adapterWatts == nil && power.batteryWatts == nil ? nil : power
+        return SMCPower(rawSystem: float("PSTR"), rawAdapter: float("PDTR"), rawBattery: float("PPBR"))
     }
 
     private func open() -> Bool {
