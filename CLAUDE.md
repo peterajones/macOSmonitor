@@ -72,6 +72,13 @@ over the XPC Mach service `ca.peter-jones.macOSmonitor.helper`.
 - The app uses it only when the kernel says EPERM (`HelperBackedTerminator`, `ProcessSampler`'s
   denied PIDs). `ProcessSampler(privileged:)` defaults to **nil** so tests on fake PIDs never reach
   an installed helper; only `ProcessListModel`'s default passes `PrivilegedHelperClient.shared`.
+- **Inspector (protocol v2):** `inspect(pid:)` returns a `PrivilegedInspection` (details, ports,
+  arguments, open files, threads, disk/energy), read with the app's own readers, so those reader
+  files (`ProcInfo`, `CString`, `ProcessDetails`, `ProcessPort`, `ProcessCommandLine`, `OpenFile`,
+  `ProcessThreads`, `ProcessResourceUsage`) also have helper target membership. `ProcessListModel`
+  asks only when its own read of the selection is denied. **It never carries an environment**
+  (stripped in both `PrivilegedInspection` initialisers): macOS shows a user only their own
+  processes' environments, and the helper must not widen that.
 - Check it's running: `launchctl print system/ca.peter-jones.macOSmonitor.helper`.
 
 **Samplers are `actor`s**, take an injected `now: () -> UInt64` clock so rate arithmetic is

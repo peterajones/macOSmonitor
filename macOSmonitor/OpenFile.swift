@@ -1,8 +1,8 @@
 import Darwin
 
 /// One open file descriptor that isn't a TCP/UDP socket (those are listed under Ports).
-struct OpenFile: Equatable, Sendable {
-    enum Kind: Equatable, Sendable {
+struct OpenFile: Equatable, Sendable, Codable {
+    enum Kind: Equatable, Sendable, Codable {
         case file, directory, pipe, kqueue, unixSocket
         /// A socket of another family, e.g. "kernel control".
         case socket(String)

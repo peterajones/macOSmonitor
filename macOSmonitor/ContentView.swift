@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var model = ProcessListModel()
+    @State private var model = ProcessListModel(privileged: PrivilegedHelperClient.shared)
     /// Owned by the app, shared with the menu bar and other windows; its loop runs there.
     let vitalsModel: VitalsModel
     @State private var batteryModel = BatteryModel()

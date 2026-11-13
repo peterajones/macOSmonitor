@@ -158,6 +158,10 @@ struct ProcessDetailView: View {
                     case .unavailable:
                         Text("Environment unavailable (permission denied).")
                             .foregroundStyle(.secondary)
+                    case .hiddenByMacOS where model.isSelectionFromHelper:
+                        // The helper never sends environments (see PrivilegedInspection).
+                        Text("Environment isn’t shown for processes that aren’t yours.")
+                            .foregroundStyle(.secondary)
                     case .hiddenByMacOS:
                         Text("Environment hidden by macOS for system processes.")
                             .foregroundStyle(.secondary)

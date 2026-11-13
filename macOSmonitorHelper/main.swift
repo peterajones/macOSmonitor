@@ -45,6 +45,20 @@ final class HelperService: NSObject, PrivilegedHelperProtocol, @unchecked Sendab
     }
 }
 
+extension HelperService {
+    /// The same readers the app uses for its own processes, run as root.
+    func inspect(pid: Int32, reply: @escaping (Data) -> Void) {
+        let proc = ProcInfo()
+        let inspection = PrivilegedInspection(details: proc.details(pid: pid),
+                                              ports: proc.ports(pid: pid),
+                                              commandLine: proc.commandLine(pid: pid),
+                                              openFiles: proc.openFiles(pid: pid),
+                                              threads: proc.threads(pid: pid),
+                                              usage: proc.usage(pid: pid))
+        reply(HelperWire.encodeInspection(inspection))
+    }
+}
+
 final class ListenerDelegate: NSObject, NSXPCListenerDelegate {
     private let service = HelperService()
 

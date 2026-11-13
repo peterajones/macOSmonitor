@@ -92,6 +92,14 @@ final class ProcessListModel {
     private let threadProvider: any ProcessThreadProviding
     private let usageProvider: any ProcessResourceUsageProviding
     private let networkProvider: any SocketTrafficProviding
+    /// The root helper, asked for the inspector's data when the kernel refuses us. Nil (the
+    /// default) never asks: tests on fake PIDs must not reach a real installed helper.
+    private let privileged: (any PrivilegedProcessAccess)?
+    /// The selected process when the kernel refused to describe it, so the helper fills it in.
+    @ObservationIgnored private var deniedPID: pid_t?
+    /// Whether the inspector's data for the selection came from the helper (a process that
+    /// isn't the user's), so the view can say why its environment isn't shown.
+    private(set) var isSelectionFromHelper = false
     private let now: @Sendable () -> UInt64
     private let interval: Duration
 
@@ -105,6 +113,7 @@ final class ProcessListModel {
          threadProvider: any ProcessThreadProviding = ProcInfo(),
          usageProvider: any ProcessResourceUsageProviding = ProcInfo(),
          networkProvider: any SocketTrafficProviding = NStatSocketTraffic(),
+         privileged: (any PrivilegedProcessAccess)? = nil,
          now: @escaping @Sendable () -> UInt64 = { DispatchTime.now().uptimeNanoseconds },
          interval: Duration = .seconds(1)) {
         self.sampler = sampler
@@ -117,6 +126,7 @@ final class ProcessListModel {
         self.threadProvider = threadProvider
         self.usageProvider = usageProvider
         self.networkProvider = networkProvider
+        self.privileged = privileged
         self.now = now
         self.interval = interval
     }
@@ -131,6 +141,7 @@ final class ProcessListModel {
         if !selectedPIDs.isSubset(of: live) { selectedPIDs.formIntersection(live) }
         refreshSelection()
         await refreshNetwork()
+        await refreshPrivileged()
     }
 
     /// The `limit` highest-CPU rows, for the Summary dashboard's process card.
@@ -169,7 +180,14 @@ final class ProcessListModel {
 
     /// Refresh all selection-scoped inspector data (details, ports, command line) for `selectedPID`.
     func refreshSelection() {
-        refreshDetails()
+        // A process the kernel refuses us, already being filled in by the helper: keep the
+        // helper's last answer on screen until its next one (re-reading here would blank the
+        // inspector to "denied" every tick before the helper answered again).
+        let localDetails = selectedPID.flatMap { detailProvider.details(pid: $0) }
+        if localDetails == nil, privileged != nil, let pid = selectedPID, pid == deniedPID { return }
+        deniedPID = localDetails == nil ? selectedPID : nil
+        isSelectionFromHelper = false
+        selectedDetails = localDetails
         selectedPorts = selectedPID.map { portProvider.ports(pid: $0) } ?? []
         selectedCommandLine = selectedPID.flatMap { commandLineProvider.commandLine(pid: $0) }
         selectedNice = selectedPID.flatMap { priorityProvider.nice(pid: $0) }
@@ -207,8 +225,29 @@ final class ProcessListModel {
         lastNetwork = (usage, nanos)
     }
 
+    /// The inspector's data for a process the kernel refused us, read as root by the helper.
+    /// Does nothing for readable processes or without the helper. An answer that arrives after
+    /// the selection has moved is dropped, so one process's details (its environment included)
+    /// never show under another.
+    func refreshPrivileged() async {
+        guard let privileged, let pid = deniedPID, pid == selectedPID else { return }
+        guard let found = await privileged.inspect(pid: pid), pid == selectedPID, pid == deniedPID else { return }
+        isSelectionFromHelper = true
+        selectedDetails = found.details
+        selectedPorts = found.ports
+        selectedCommandLine = found.commandLine
+        selectedOpenFiles = found.openFiles
+        selectedThreads = found.threads.map(ThreadInfo.sortedForDisplay)
+        applyUsage(found.usage, pid: pid)
+    }
+
     private func refreshUsage() {
-        guard let pid = selectedPID, let usage = usageProvider.usage(pid: pid) else {
+        applyUsage(selectedPID.flatMap { usageProvider.usage(pid: $0) }, pid: selectedPID)
+    }
+
+    /// Publishes a usage reading and its rates against the previous reading of the same process.
+    private func applyUsage(_ reading: ProcessResourceUsage?, pid: pid_t?) {
+        guard let pid, let usage = reading else {
             selectedUsage = nil
             selectedUsageRates = nil
             lastUsage = nil

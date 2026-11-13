@@ -79,7 +79,15 @@
 		F4CF761B30A78B3300CB361C /* Exceptions for "macOSmonitor" folder in "macOSmonitorHelper" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				CString.swift,
 				HelperShared.swift,
+				OpenFile.swift,
+				ProcessCommandLine.swift,
+				ProcessDetails.swift,
+				ProcessPort.swift,
+				ProcessResourceUsage.swift,
+				ProcessThreads.swift,
+				ProcInfo.swift,
 			);
 			target = F4CF760530A7830E00CB361C /* macOSmonitorHelper */;
 		};

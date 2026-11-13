@@ -73,7 +73,12 @@ struct ProcessesView: View {
         .focusedSceneValue(\.processTermination, ProcessTerminationActions(
             canTerminate: !batch(for: model.selectedPIDs).targets.isEmpty,
             request: { signal in requestSignal(signal, for: batch(for: model.selectedPIDs)) }))
-        .onChange(of: model.selectedPIDs) { model.refreshSelection() }
+        .onChange(of: model.selectedPIDs) {
+            model.refreshSelection()
+            // A root process's details come from the helper, asynchronously; ask now rather
+            // than waiting for the next tick.
+            Task { await model.refreshPrivileged() }
+        }
         .inspector(isPresented: $showInspector) {
             ProcessDetailView(model: model, visibleRows: sections.flatMap(\.rows))
                 .inspectorColumnWidth(min: 240, ideal: 300, max: 420)

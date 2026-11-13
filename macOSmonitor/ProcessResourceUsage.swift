@@ -3,7 +3,7 @@ import Foundation
 
 /// A process's cumulative disk I/O, energy and on-behalf-of CPU time, from `proc_pid_rusage`
 /// (own processes only).
-struct ProcessResourceUsage: Equatable, Sendable {
+struct ProcessResourceUsage: Equatable, Sendable, Codable {
     let diskBytesRead: UInt64
     let diskBytesWritten: UInt64
     /// The kernel's estimate of energy used, in nanojoules (`ri_energy_nj`). Not Activity

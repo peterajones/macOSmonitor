@@ -2,7 +2,7 @@ import Darwin
 import Foundation
 
 /// Static-ish detail about one process, shown in the inspector.
-struct ProcessDetails: Equatable, Sendable {
+struct ProcessDetails: Equatable, Sendable, Codable {
     let path: String?
     let parentPID: pid_t
     let startDate: Date

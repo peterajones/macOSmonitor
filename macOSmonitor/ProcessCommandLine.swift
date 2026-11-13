@@ -2,7 +2,7 @@ import Darwin
 
 /// A process's launch arguments (argv, including argv[0]) and environment ("NAME=value"),
 /// as they were at exec time.
-struct ProcessCommandLine: Equatable, Sendable {
+struct ProcessCommandLine: Equatable, Sendable, Codable {
     let arguments: [String]
     let environment: [String]
 }

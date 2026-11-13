@@ -1,7 +1,7 @@
 import Darwin
 
 /// One thread of a process, for the inspector.
-struct ThreadInfo: Equatable, Sendable, Identifiable {
+struct ThreadInfo: Equatable, Sendable, Identifiable, Codable {
     let id: UInt64
     let name: String
     /// Cumulative user + system CPU time in nanoseconds. Unlike `proc_taskinfo`'s totals,

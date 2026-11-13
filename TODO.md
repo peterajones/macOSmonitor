@@ -3,7 +3,8 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [ ] Build a privileged XPC helper (SMAppService) for full detail on, and termination of, all processes (from: docs/superpowers/specs/2026-07-02-process-dashboard-design.md)
+- [x] Build a privileged XPC helper (SMAppService) for full detail on, and termination of, all processes (from: docs/superpowers/specs/2026-07-02-process-dashboard-design.md)
+- [ ] Ports surface: list root and other users' sockets through the privileged helper (it lists only your own processes' today)
 
 ## Later
 - [ ] Add an Energy panel with power/wattage draw and per-app energy impact; probed 2026-11-12: without root, IOReport gives GPU energy only (CPU, ANE, DRAM read 0), so system power needs the privileged helper (from: docs/superpowers/specs/2026-08-26-performance-view-design.md)

@@ -9,7 +9,7 @@ enum HelperConstants {
     static let machServiceName = "ca.peter-jones.macOSmonitor.helper"
     static let plistName = "ca.peter-jones.macOSmonitor.helper.plist"
     /// Bumped when the protocol changes, so the app can tell an out-of-date helper.
-    static let protocolVersion = 1
+    static let protocolVersion = 2   // 2: inspect(pid:)
 
     /// The only client the helper obeys: this app, signed by Peter's team. Without this, any
     /// process on the Mac could ask a root daemon to kill things.
@@ -50,6 +50,48 @@ struct ProcTaskSample: Sendable {
     func sendSignal(_ signal: Int32, toPID pid: Int32, reply: @escaping (Int32) -> Void)
     /// Memory and CPU time for `pids`, as `HelperWire.encodeSamples` data.
     func taskSamples(forPIDs pids: [NSNumber], reply: @escaping (Data) -> Void)
+    /// Everything the inspector shows for `pid`, as `HelperWire.encodeInspection` data.
+    func inspect(pid: Int32, reply: @escaping (Data) -> Void)
+}
+
+/// What the inspector shows for one process, read as root by the helper with the same
+/// readers the app uses for its own processes. Each part is nil (or empty) when unreadable.
+///
+/// It never carries an environment: macOS shows a user only their own processes' environments
+/// (which hold tokens and keys), and the helper must not widen that. Arguments stay, since
+/// `ps` already shows every process's command line to every user. The rule is enforced in both
+/// initialisers, so neither a helper build nor a decoded message can get round it.
+struct PrivilegedInspection: Equatable, Sendable, Codable {
+    let details: ProcessDetails?
+    let ports: [ProcessPort]
+    let commandLine: ProcessCommandLine?
+    let openFiles: [OpenFile]?
+    let threads: [ThreadInfo]?
+    let usage: ProcessResourceUsage?
+
+    init(details: ProcessDetails?, ports: [ProcessPort], commandLine: ProcessCommandLine?,
+         openFiles: [OpenFile]?, threads: [ThreadInfo]?, usage: ProcessResourceUsage?) {
+        self.details = details
+        self.ports = ports
+        self.commandLine = commandLine.map { ProcessCommandLine(arguments: $0.arguments, environment: []) }
+        self.openFiles = openFiles
+        self.threads = threads
+        self.usage = usage
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case details, ports, commandLine, openFiles, threads, usage
+    }
+
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(details: try c.decodeIfPresent(ProcessDetails.self, forKey: .details),
+                  ports: try c.decode([ProcessPort].self, forKey: .ports),
+                  commandLine: try c.decodeIfPresent(ProcessCommandLine.self, forKey: .commandLine),
+                  openFiles: try c.decodeIfPresent([OpenFile].self, forKey: .openFiles),
+                  threads: try c.decodeIfPresent([ThreadInfo].self, forKey: .threads),
+                  usage: try c.decodeIfPresent(ProcessResourceUsage.self, forKey: .usage))
+    }
 }
 
 /// What the helper will and won't do, kept apart from the XPC plumbing so it's testable.
@@ -108,6 +150,14 @@ enum HelperWire {
     static func encodeSamples(_ samples: [pid_t: ProcTaskSample]) -> Data {
         let plain = Dictionary(uniqueKeysWithValues: samples.map { (String($0.key), [$0.value.residentBytes, $0.value.cpuTimeNanos]) })
         return (try? JSONEncoder().encode(plain)) ?? Data()
+    }
+
+    static func encodeInspection(_ inspection: PrivilegedInspection) -> Data {
+        (try? JSONEncoder().encode(inspection)) ?? Data()
+    }
+
+    static func decodeInspection(_ data: Data) -> PrivilegedInspection? {
+        try? JSONDecoder().decode(PrivilegedInspection.self, from: data)
     }
 
     static func decodeSamples(_ data: Data) -> [pid_t: ProcTaskSample]? {

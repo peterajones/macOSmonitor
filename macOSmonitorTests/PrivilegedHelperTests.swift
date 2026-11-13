@@ -17,6 +17,7 @@ final class FakePrivilegedAccess: PrivilegedProcessAccess, @unchecked Sendable {
         signalsSent.append((signal, pid))
         return signalResult
     }
+    func inspect(pid: pid_t) async -> PrivilegedInspection? { nil }
 }
 
 /// A terminator that always gets the given answer from the kernel.

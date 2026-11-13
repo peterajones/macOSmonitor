@@ -11,6 +11,9 @@ protocol PrivilegedProcessAccess: Sendable {
     /// Sends `signal` as root. 0 on success, an errno on failure, nil when the helper isn't
     /// available. Synchronous: it backs a user's confirmed Quit, never a timer.
     func sendSignal(_ signal: Int32, to pid: pid_t) -> Int32?
+    /// The inspector's data for a process the app may not read; nil when the helper isn't
+    /// available or the process is gone.
+    func inspect(pid: pid_t) async -> PrivilegedInspection?
 }
 
 /// Talks to the installed helper over XPC. Every call checks the registration first, so an
@@ -49,6 +52,24 @@ final class PrivilegedHelperClient: PrivilegedProcessAccess, @unchecked Sendable
         } as? PrivilegedHelperProtocol
         proxy?.sendSignal(signal, toPID: pid) { answer = $0 }
         return answer
+    }
+
+    func inspect(pid: pid_t) async -> PrivilegedInspection? {
+        guard isEnabled else { return nil }
+        return await withCheckedContinuation { continuation in
+            let once = Once()
+            let proxy = connect().remoteObjectProxyWithErrorHandler { [weak self] _ in
+                self?.reset()
+                if once.claim() { continuation.resume(returning: nil) }
+            } as? PrivilegedHelperProtocol
+            guard let proxy else {
+                if once.claim() { continuation.resume(returning: nil) }
+                return
+            }
+            proxy.inspect(pid: pid) { data in
+                if once.claim() { continuation.resume(returning: HelperWire.decodeInspection(data)) }
+            }
+        }
     }
 
     /// The helper's protocol version, or nil when it doesn't answer.
