@@ -41,6 +41,28 @@ struct HelperRulesTests {
         #expect(HelperRules.refusal(signal: 0, pid: 500, helperPID: 900) == EINVAL)
     }
 
+    /// Only admins may use the helper: a standard account must not get root's power to quit
+    /// any process just by opening the app.
+    @Test func onlyAdminsAreAccepted() {
+        #expect(HelperRules.isAdmin(uid: 0))                       // root
+        #expect(!HelperRules.isAdmin(uid: 4_294_967_294))          // nobody (-2)
+        // The current user, checked independently through their group list.
+        var groups = [Int32](repeating: 0, count: 64)
+        var count = Int32(groups.count)
+        let name = String(cString: getpwuid(getuid())!.pointee.pw_name)
+        getgrouplist(name, Int32(getgid()), &groups, &count)
+        let inAdminGroup = groups.prefix(Int(count)).contains(80)   // gid 80 = admin
+        #expect(HelperRules.isAdmin(uid: getuid()) == inAdminGroup)
+    }
+
+    /// Debuggable builds (get-task-allow) can be injected into by any process of the same user,
+    /// so a Release helper refuses them; Debug must accept them or Xcode runs can't use it.
+    @Test func releaseRefusesDebuggableClients() {
+        let clause = #"!entitlement["com.apple.security.get-task-allow"]"#
+        #expect(HelperConstants.clientRequirement(debug: false).contains(clause))
+        #expect(!HelperConstants.clientRequirement(debug: true).contains(clause))
+    }
+
     @Test func samplesRoundTripThroughTheWireFormat() throws {
         let sent: [pid_t: ProcTaskSample] = [88: ProcTaskSample(residentBytes: 12_345, cpuTimeNanos: 6_789)]
         let decoded = try #require(HelperWire.decodeSamples(HelperWire.encodeSamples(sent)))

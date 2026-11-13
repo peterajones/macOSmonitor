@@ -49,6 +49,9 @@ final class ListenerDelegate: NSObject, NSXPCListenerDelegate {
     private let service = HelperService()
 
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
+        // Who is asking, from the kernel's audit token (not anything the caller says): only an
+        // admin may use root's power over other processes.
+        guard HelperRules.isAdmin(uid: connection.effectiveUserIdentifier) else { return false }
         // Every message on this connection is checked against the app's signature; a caller
         // that isn't macOSmonitor signed by Peter's team is cut off before any method runs.
         connection.setCodeSigningRequirement(HelperConstants.clientRequirement)

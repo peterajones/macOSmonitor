@@ -58,6 +58,14 @@ over the XPC Mach service `ca.peter-jones.macOSmonitor.helper`.
   `helperRequirement`, team `8QQC2WMRHS`). **The helper's signing identifier is
   `macOSmonitorHelper`** (the product name), not its bundle ID: it has no embedded Info.plist.
   Test a requirement against the built binary with `codesign -v -R='…' <path>`.
+- **Security rules (from the 2026-11-13 security review):** the helper accepts a connection only
+  from an **admin** user (`HelperRules.isAdmin`, from the connection's audit-token uid), so a
+  standard account can't borrow root's power to signal any process. A **Release** helper also
+  refuses debuggable clients (`!entitlement["com.apple.security.get-task-allow"]`): a debuggable
+  app can be injected into by any process of the same user. That only works because the app
+  target's Release has **Code Signing Inject Base Entitlements = No**; with Apple Development
+  signing, Xcode otherwise adds `get-task-allow` to Release too and the Release helper would
+  refuse its own app. Debug keeps it (Xcode's debugger needs it), so a Debug helper accepts it.
 - The bundle layout comes from two Copy Files phases on the app target: the helper into
   Executables, `LaunchDaemons/ca.peter-jones.macOSmonitor.helper.plist` into Wrapper
   `Contents/Library/LaunchDaemons`.

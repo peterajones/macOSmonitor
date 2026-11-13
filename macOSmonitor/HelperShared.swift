@@ -13,8 +13,23 @@ enum HelperConstants {
 
     /// The only client the helper obeys: this app, signed by Peter's team. Without this, any
     /// process on the Mac could ask a root daemon to kill things.
-    static let clientRequirement =
-        #"anchor apple generic and identifier "ca.peter-jones.macOSmonitor" and certificate leaf[subject.OU] = "8QQC2WMRHS""#
+    ///
+    /// A Release helper also refuses debuggable builds: `get-task-allow` lets any process of
+    /// the same user attach to the app and inject code, which would then drive the helper.
+    /// Debug builds (Xcode runs) carry that entitlement, so a Debug helper must accept it.
+    static func clientRequirement(debug: Bool) -> String {
+        let base = #"anchor apple generic and identifier "ca.peter-jones.macOSmonitor" and certificate leaf[subject.OU] = "8QQC2WMRHS""#
+        return debug ? base : base + #" and !entitlement["com.apple.security.get-task-allow"]"#
+    }
+
+    /// The requirement for this build of the helper.
+    static var clientRequirement: String {
+        #if DEBUG
+        clientRequirement(debug: true)
+        #else
+        clientRequirement(debug: false)
+        #endif
+    }
     /// The only helper the app talks to: the one it ships, signed by the same team.
     static let helperRequirement =
         #"anchor apple generic and identifier "macOSmonitorHelper" and certificate leaf[subject.OU] = "8QQC2WMRHS""#
@@ -41,6 +56,43 @@ struct ProcTaskSample: Sendable {
 enum HelperRules {
     /// The signals the app sends (Quit, Force Quit, Pause, Resume, Hang Up).
     static let allowedSignals: Set<Int32> = [SIGTERM, SIGKILL, SIGSTOP, SIGCONT, SIGHUP]
+
+    /// Whether `uid` is in the admin group (gid 80), asked of Directory Services the way the
+    /// system's own authorization checks do (nested groups count). Root always is. The helper
+    /// accepts only admins: a standard account must not gain root's power to signal any
+    /// process just by opening the app.
+    static func isAdmin(uid: uid_t) -> Bool {
+        if uid == 0 { return true }
+        guard let membership = Membership.functions else { return false }   // fail closed
+        var userUUID: uuid_t = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        var adminUUID: uuid_t = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        var isMember: Int32 = 0
+        let ok = withUnsafeMutableBytes(of: &userUUID) { user in
+            withUnsafeMutableBytes(of: &adminUUID) { admin in
+                membership.uidToUUID(uid, user.baseAddress!) == 0
+                    && membership.gidToUUID(80, admin.baseAddress!) == 0
+                    && membership.check(user.baseAddress!, admin.baseAddress!, &isMember) == 0
+            }
+        }
+        return ok && isMember == 1
+    }
+
+    /// `<membership.h>` is public libSystem API but not in Swift's Darwin module, so its three
+    /// functions are looked up by name.
+    private enum Membership {
+        typealias UIDToUUID = @convention(c) (uid_t, UnsafeMutableRawPointer) -> Int32
+        typealias GIDToUUID = @convention(c) (gid_t, UnsafeMutableRawPointer) -> Int32
+        typealias Check = @convention(c) (UnsafeMutableRawPointer, UnsafeMutableRawPointer, UnsafeMutablePointer<Int32>) -> Int32
+
+        static let functions: (uidToUUID: UIDToUUID, gidToUUID: GIDToUUID, check: Check)? = {
+            let handle = dlopen(nil, RTLD_NOW)
+            guard let u = dlsym(handle, "mbr_uid_to_uuid"),
+                  let g = dlsym(handle, "mbr_gid_to_uuid"),
+                  let c = dlsym(handle, "mbr_check_membership") else { return nil }
+            return (unsafeBitCast(u, to: UIDToUUID.self), unsafeBitCast(g, to: GIDToUUID.self),
+                    unsafeBitCast(c, to: Check.self))
+        }()
+    }
 
     /// Nil to go ahead; otherwise the errno to refuse with. Refuses launchd (killing it panics
     /// the Mac), the kernel, kill()'s group/broadcast PIDs (≤ 0), and the helper itself.
