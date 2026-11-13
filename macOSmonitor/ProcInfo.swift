@@ -39,7 +39,7 @@ struct ProcInfo: ProcInfoProviding {
         return Array(pids.prefix(count).filter { $0 != 0 })
     }
 
-    /// CPU time + resident memory for one process. Returns `nil` when the kernel
+    /// CPU time, resident memory and energy for one process. Returns `nil` when the kernel
     /// denies us (EPERM — a process we don't own) or the process has exited.
     func sample(pid: pid_t) -> ProcTaskSample? {
         var info = proc_taskinfo()
@@ -47,7 +47,8 @@ struct ProcInfo: ProcInfoProviding {
         // proc_pidinfo returns `size` on success; 0/negative on EPERM or vanished PID.
         guard proc_pidinfo(pid, PROC_PIDTASKINFO, 0, &info, size) == size else { return nil }
         let ticks = info.pti_total_user &+ info.pti_total_system
-        return ProcTaskSample(residentBytes: info.pti_resident_size, cpuTimeNanos: nanos(ticks: ticks))
+        return ProcTaskSample(residentBytes: info.pti_resident_size, cpuTimeNanos: nanos(ticks: ticks),
+                              energyNanojoules: usage(pid: pid)?.energyNanojoules)
     }
 
     /// Mach ticks to nanoseconds with this Mac's timebase.

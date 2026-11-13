@@ -97,7 +97,7 @@ struct ContentView: View {
             case .thermal:
                 ThermalPanel(model: vitalsModel)
             case .energy:
-                EnergyPanel(model: vitalsModel)
+                EnergyPanel(model: vitalsModel, processes: model)
             case .battery:
                 BatteryPanel(model: batteryModel)
             }

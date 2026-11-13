@@ -9,7 +9,7 @@ enum HelperConstants {
     static let machServiceName = "ca.peter-jones.macOSmonitor.helper"
     static let plistName = "ca.peter-jones.macOSmonitor.helper.plist"
     /// Bumped when the protocol changes, so the app can tell an out-of-date helper.
-    static let protocolVersion = 3   // 2: inspect(pid:); 3: allPorts
+    static let protocolVersion = 4   // 2: inspect(pid:); 3: allPorts; 4: energy in task samples
 
     /// The only client the helper obeys: this app, signed by Peter's team. Without this, any
     /// process on the Mac could ask a root daemon to kill things.
@@ -36,10 +36,18 @@ enum HelperConstants {
 }
 
 /// One finished per-process sample. `cpuTimeNanos` is total (user + system) CPU
-/// time already converted from Mach ticks to nanoseconds.
+/// time already converted from Mach ticks to nanoseconds. `energyNanojoules` is the kernel's
+/// cumulative energy estimate (`ri_energy_nj`); nil when it couldn't be read.
 struct ProcTaskSample: Sendable {
     let residentBytes: UInt64
     let cpuTimeNanos: UInt64
+    let energyNanojoules: UInt64?
+
+    init(residentBytes: UInt64, cpuTimeNanos: UInt64, energyNanojoules: UInt64? = nil) {
+        self.residentBytes = residentBytes
+        self.cpuTimeNanos = cpuTimeNanos
+        self.energyNanojoules = energyNanojoules
+    }
 }
 
 /// The XPC interface. Plain types only (Objective-C bridging); errors travel as errno values.
@@ -149,10 +157,13 @@ enum HelperRules {
     }
 }
 
-/// The task-sample payload: JSON of pid → [resident bytes, CPU nanoseconds].
+/// The task-sample payload: JSON of pid → [resident bytes, CPU nanoseconds, energy nanojoules]
+/// (energy left off when unknown, as protocol-3 helpers always do).
 enum HelperWire {
     static func encodeSamples(_ samples: [pid_t: ProcTaskSample]) -> Data {
-        let plain = Dictionary(uniqueKeysWithValues: samples.map { (String($0.key), [$0.value.residentBytes, $0.value.cpuTimeNanos]) })
+        let plain = Dictionary(uniqueKeysWithValues: samples.map { pid, sample in
+            (String(pid), [sample.residentBytes, sample.cpuTimeNanos] + (sample.energyNanojoules.map { [$0] } ?? []))
+        })
         return (try? JSONEncoder().encode(plain)) ?? Data()
     }
 
@@ -184,8 +195,9 @@ enum HelperWire {
         guard let plain = try? JSONDecoder().decode([String: [UInt64]].self, from: data) else { return nil }
         var samples: [pid_t: ProcTaskSample] = [:]
         for (key, values) in plain {
-            guard let pid = pid_t(key), values.count == 2 else { continue }
-            samples[pid] = ProcTaskSample(residentBytes: values[0], cpuTimeNanos: values[1])
+            guard let pid = pid_t(key), values.count == 2 || values.count == 3 else { continue }
+            samples[pid] = ProcTaskSample(residentBytes: values[0], cpuTimeNanos: values[1],
+                                          energyNanojoules: values.count == 3 ? values[2] : nil)
         }
         return samples
     }

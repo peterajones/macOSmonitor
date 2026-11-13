@@ -12,12 +12,6 @@ import Foundation
 import Darwin
 
 final class HelperService: NSObject, PrivilegedHelperProtocol, @unchecked Sendable {
-    private let timebase: mach_timebase_info_data_t = {
-        var tb = mach_timebase_info_data_t()
-        mach_timebase_info(&tb)
-        return tb
-    }()
-
     func protocolVersion(reply: @escaping (Int) -> Void) {
         reply(HelperConstants.protocolVersion)
     }
@@ -31,15 +25,12 @@ final class HelperService: NSObject, PrivilegedHelperProtocol, @unchecked Sendab
     }
 
     func taskSamples(forPIDs pids: [NSNumber], reply: @escaping (Data) -> Void) {
+        // The app's own reader, run as root: memory, CPU time and energy.
+        let proc = ProcInfo()
         var samples: [pid_t: ProcTaskSample] = [:]
-        let size = Int32(MemoryLayout<proc_taskinfo>.size)
         for number in pids.prefix(4096) {
             let pid = number.int32Value
-            var info = proc_taskinfo()
-            guard proc_pidinfo(pid, PROC_PIDTASKINFO, 0, &info, size) == size else { continue }
-            let ticks = info.pti_total_user &+ info.pti_total_system
-            samples[pid] = ProcTaskSample(residentBytes: info.pti_resident_size,
-                                          cpuTimeNanos: ticks &* UInt64(timebase.numer) / UInt64(timebase.denom))
+            samples[pid] = proc.sample(pid: pid)
         }
         reply(HelperWire.encodeSamples(samples))
     }

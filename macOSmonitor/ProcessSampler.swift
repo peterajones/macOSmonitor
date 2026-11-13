@@ -17,6 +17,7 @@ actor ProcessSampler: ProcessSampling {
     private var previousGPU: [pid_t: UInt64]?
     private let now: @Sendable () -> UInt64
     private var previousCPU: [pid_t: UInt64] = [:]   // pid -> cpuTimeNanos last tick
+    private var previousEnergy: [pid_t: UInt64] = [:] // pid -> energyNanojoules last tick
     private var lastWallNanos: UInt64?
     /// uid → account name. A handful of uids cover every process, and getpwuid isn't free.
     private var userNames: [uid_t: String] = [:]
@@ -50,6 +51,7 @@ actor ProcessSampler: ProcessSampling {
 
         var rows: [ProcessInfoRow] = []
         var currentCPU: [pid_t: UInt64] = [:]
+        var currentEnergy: [pid_t: UInt64] = [:]
 
         for pid in pids {
             let name = source.name(pid: pid)
@@ -70,11 +72,19 @@ actor ProcessSampler: ProcessSampling {
                 let cpuDelta = s.cpuTimeNanos >= prev ? s.cpuTimeNanos - prev : 0
                 cpuPercent = 100.0 * Double(cpuDelta) / Double(wallDelta)
             }
-            rows.append(ProcessInfoRow(pid: pid, name: name,
-                                       cpuPercent: cpuPercent, memoryBytes: s.residentBytes,
-                                       cpuTimeNanos: s.cpuTimeNanos,
-                                       isApplication: appPIDs.contains(pid), uid: uid,
-                                           user: user, path: path))
+            var row = ProcessInfoRow(pid: pid, name: name,
+                                     cpuPercent: cpuPercent, memoryBytes: s.residentBytes,
+                                     cpuTimeNanos: s.cpuTimeNanos,
+                                     isApplication: appPIDs.contains(pid), uid: uid,
+                                     user: user, path: path)
+            // nJ per ns is watts. A counter that went backwards is a reused PID: no reading.
+            if let energy = s.energyNanojoules {
+                currentEnergy[pid] = energy
+                if let before = previousEnergy[pid], energy >= before, wallDelta > 0 {
+                    row.powerWatts = Double(energy - before) / Double(wallDelta)
+                }
+            }
+            rows.append(row)
         }
 
         // GPU columns: a process's GPU time this tick, and its share of the interval. A counter
@@ -94,6 +104,7 @@ actor ProcessSampler: ProcessSampling {
         previousGPU = gpuTimes
 
         previousCPU = currentCPU
+        previousEnergy = currentEnergy
         lastWallNanos = wall
         return rows
     }

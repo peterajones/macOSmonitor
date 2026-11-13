@@ -1,9 +1,11 @@
 import SwiftUI
 
-/// The Energy Performance panel: whole-system power over the last 60 seconds, then where it
-/// comes from (adapter, battery) and the GPU's share.
+/// The Energy Performance panel: whole-system power over the last 60 seconds, where it
+/// comes from (adapter, battery), the GPU's share, and the processes drawing the most.
 struct EnergyPanel: View {
     let model: VitalsModel
+    /// The window's process list, for the top processes by power.
+    let processes: ProcessListModel
     @Environment(\.theme) private var theme
 
     /// The graph's and meter's scale: at least 10 W so an idle Mac doesn't fill the graph,
@@ -51,7 +53,23 @@ struct EnergyPanel: View {
             }
             .padding(.top, 8)
 
-            Text("System, adapter and battery power come from the SMC; GPU power from its energy counter. macOS 27 no longer updates the CPU, Neural Engine and memory energy counters, so they aren’t shown.")
+            Text("Top processes by power")
+                .font(.headline)
+                .foregroundStyle(theme.primaryText)
+                .padding(.top, 8)
+            Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 4) {
+                ForEach(ProcessInfoRow.topByPower(processes.rows, limit: 8)) { row in
+                    GridRow {
+                        Text(row.name).lineLimit(1).foregroundStyle(theme.primaryText)
+                        Text(PowerReading.text(row.powerWatts))
+                            .monospacedDigit()
+                            .foregroundStyle(theme.primaryText)
+                            .gridColumnAlignment(.trailing)
+                    }
+                }
+            }
+
+            Text("System, adapter and battery power come from the SMC; GPU power from its energy counter. macOS 27 no longer updates the CPU, Neural Engine and memory energy counters, so they aren’t shown. Per-process power is the kernel’s estimate for each process; processes that aren’t yours need the privileged helper.")
                 .font(.caption)
                 .foregroundStyle(theme.secondaryText)
 

@@ -22,6 +22,9 @@ struct ProcessInfoRow: Identifiable, Hashable, Sendable {
     var gpuPercent: Double? = nil
     /// Cumulative GPU time in nanoseconds; nil when unknown.
     var gpuTimeNanos: UInt64? = nil
+    /// Average power over the last interval, from the kernel's per-process energy estimate;
+    /// nil when unknown (no baseline yet, unreadable, or the counter restarted).
+    var powerWatts: Double? = nil
 
     var id: pid_t { pid }
 
@@ -57,6 +60,22 @@ struct ProcessInfoRow: Identifiable, Hashable, Sendable {
     var cpuTimeSortKey: UInt64 { cpuTimeNanos ?? 0 }
 
     var gpuSortKey: Double { gpuPercent ?? -1 }
+
+    var powerSortKey: Double { powerWatts ?? -1 }
+
+    /// Watts to two places (most processes draw well under 0.1 W), or "—" when unknown.
+    var powerText: String { powerWatts.map { String(format: "%.2f", $0) } ?? "—" }
+
+    /// The `limit` highest-power rows with a reading, descending, ties by ascending PID so
+    /// the list doesn't reshuffle every tick.
+    static func topByPower(_ rows: [ProcessInfoRow], limit: Int) -> [ProcessInfoRow] {
+        guard limit > 0 else { return [] }
+        let known = rows.filter { $0.powerWatts != nil }
+        let sorted = known.sorted {
+            $0.powerSortKey == $1.powerSortKey ? $0.pid < $1.pid : $0.powerSortKey > $1.powerSortKey
+        }
+        return Array(sorted.prefix(limit))
+    }
 
     /// GPU% formatted like CPU%, or an em dash when unknown.
     var gpuText: String { gpuPercent.map { String(format: "%.1f", $0) } ?? "—" }

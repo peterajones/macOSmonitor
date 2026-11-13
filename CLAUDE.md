@@ -82,6 +82,9 @@ over the XPC Mach service `ca.peter-jones.macOSmonitor.helper`.
 - **Ports (protocol v3):** `allPorts` returns every process's sockets in one call (the app can't tell
   a denied socket read from a process with none). `PortsSampler(privileged:)` defaults to nil; the
   app's own read wins where it has anything, the helper's fills in the rest.
+- **Task samples carry energy (protocol v4):** `ProcTaskSample.energyNanojoules` (`ri_energy_nj`) for
+  the Power (W) column; the helper's `taskSamples` now runs `ProcInfo.sample`. The wire format is
+  `[resident, cpu, energy?]`, and a 2-value payload from an older helper still decodes.
 - Check it's running: `launchctl print system/ca.peter-jones.macOSmonitor.helper`.
 
 **Samplers are `actor`s**, take an injected `now: () -> UInt64` clock so rate arithmetic is
@@ -139,6 +142,9 @@ anything by deleting the code it guards and watching it fail.
   fires on the `continue` path. Consume `IORegistryEntryCreateCFProperties` with
   `takeRetainedValue()`.
 - Disk byte counters exceed 32 bits on any real machine. `UInt64` throughout.
+- **IOReport's CPU, ANE and DRAM energy counters are frozen on macOS 27.2** (probed 2026-11-13, M3
+  Pro: no change over a minute of full load, with or without root). Only `GPU Energy` moves. System
+  power comes from the SMC (`PSTR`/`PDTR`/`PPBR`, no root; `AppleSMCPower`). Re-probe after updates.
 - **SourceKit in this project routinely emits phantom "cannot find type X in scope" /
   "no such module 'Testing'" errors** right after a file changes. `xcodebuild` is the source of
   truth; if it compiles, the code is fine.

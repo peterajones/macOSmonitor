@@ -185,6 +185,11 @@ private struct ProcessTableView: View {
                     .monospacedDigit()
                     .themedCell(theme, selected: selection.contains(row.pid))
             }
+            TableColumn("Power (W)", value: \.powerSortKey) { row in
+                Text(row.powerText)
+                    .monospacedDigit()
+                    .themedCell(theme, selected: selection.contains(row.pid))
+            }
             TableColumn("Memory", value: \.memSortKey) { row in
                 Text(row.memoryText)
                     .monospacedDigit()
