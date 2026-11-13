@@ -145,6 +145,9 @@ anything by deleting the code it guards and watching it fail.
 - **IOReport's CPU, ANE and DRAM energy counters are frozen on macOS 27.2** (probed 2026-11-13, M3
   Pro: no change over a minute of full load, with or without root). Only `GPU Energy` moves. System
   power comes from the SMC (`PSTR`/`PDTR`/`PPBR`, no root; `AppleSMCPower`). Re-probe after updates.
+  NPU utilisation was dropped (2026-11-13): no live busy measure exists. IOReport `ANE`/`IOP State`
+  "Running" means powered on (100% even at one Vision request a second); the PMP ANE bandwidth
+  histograms move but their units are undocumented.
 - **SourceKit in this project routinely emits phantom "cannot find type X in scope" /
   "no such module 'Testing'" errors** right after a file changes. `xcodebuild` is the source of
   truth; if it compiles, the code is fine.
