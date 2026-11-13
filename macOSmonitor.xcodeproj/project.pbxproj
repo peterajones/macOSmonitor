@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F4CF761030A7866000CB361C /* macOSmonitorHelper in CopyFiles */ = {isa = PBXBuildFile; fileRef = F4CF760630A7830E00CB361C /* macOSmonitorHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		F4CF761D30A78CA400CB361C /* ca.peter-jones.macOSmonitor.helper.plist in CopyFiles */ = {isa = PBXBuildFile; fileRef = F4CF761C30A78CA400CB361C /* ca.peter-jones.macOSmonitor.helper.plist */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		F475FDB12FF6C44B0046D347 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,17 +26,71 @@
 			remoteGlobalIDString = F475FDA22FF6C44A0046D347;
 			remoteInfo = macOSmonitor;
 		};
+		F4CF760D30A7857800CB361C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F475FD9B2FF6C44A0046D347 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F4CF760530A7830E00CB361C;
+			remoteInfo = macOSmonitorHelper;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F4CF760430A7830E00CB361C /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		F4CF760F30A7860E00CB361C /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				F4CF761030A7866000CB361C /* macOSmonitorHelper in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F4CF761130A7868900CB361C /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/LaunchDaemons;
+			dstSubfolderSpec = 1;
+			files = (
+				F4CF761D30A78CA400CB361C /* ca.peter-jones.macOSmonitor.helper.plist in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		F475FDA32FF6C44A0046D347 /* macOSmonitor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = macOSmonitor.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F475FDB02FF6C44B0046D347 /* macOSmonitorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = macOSmonitorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F475FDBA2FF6C44B0046D347 /* macOSmonitorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = macOSmonitorUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F4CF760630A7830E00CB361C /* macOSmonitorHelper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = macOSmonitorHelper; sourceTree = BUILT_PRODUCTS_DIR; };
+		F4CF761C30A78CA400CB361C /* ca.peter-jones.macOSmonitor.helper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "ca.peter-jones.macOSmonitor.helper.plist"; path = "LaunchDaemons/ca.peter-jones.macOSmonitor.helper.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F4CF761B30A78B3300CB361C /* Exceptions for "macOSmonitor" folder in "macOSmonitorHelper" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				HelperShared.swift,
+			);
+			target = F4CF760530A7830E00CB361C /* macOSmonitorHelper */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		F475FDA52FF6C44A0046D347 /* macOSmonitor */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F4CF761B30A78B3300CB361C /* Exceptions for "macOSmonitor" folder in "macOSmonitorHelper" target */,
+			);
 			path = macOSmonitor;
 			sourceTree = "<group>";
 		};
@@ -43,6 +102,11 @@
 		F475FDBD2FF6C44B0046D347 /* macOSmonitorUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = macOSmonitorUITests;
+			sourceTree = "<group>";
+		};
+		F4CF760730A7830E00CB361C /* macOSmonitorHelper */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = macOSmonitorHelper;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -69,15 +133,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F4CF760330A7830E00CB361C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		F475FD9A2FF6C44A0046D347 = {
 			isa = PBXGroup;
 			children = (
+				F4CF761C30A78CA400CB361C /* ca.peter-jones.macOSmonitor.helper.plist */,
 				F475FDA52FF6C44A0046D347 /* macOSmonitor */,
 				F475FDB32FF6C44B0046D347 /* macOSmonitorTests */,
 				F475FDBD2FF6C44B0046D347 /* macOSmonitorUITests */,
+				F4CF760730A7830E00CB361C /* macOSmonitorHelper */,
 				F475FDA42FF6C44A0046D347 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,6 +161,7 @@
 				F475FDA32FF6C44A0046D347 /* macOSmonitor.app */,
 				F475FDB02FF6C44B0046D347 /* macOSmonitorTests.xctest */,
 				F475FDBA2FF6C44B0046D347 /* macOSmonitorUITests.xctest */,
+				F4CF760630A7830E00CB361C /* macOSmonitorHelper */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -102,10 +176,13 @@
 				F475FD9F2FF6C44A0046D347 /* Sources */,
 				F475FDA02FF6C44A0046D347 /* Frameworks */,
 				F475FDA12FF6C44A0046D347 /* Resources */,
+				F4CF760F30A7860E00CB361C /* CopyFiles */,
+				F4CF761130A7868900CB361C /* CopyFiles */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				F4CF760E30A7857800CB361C /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				F475FDA52FF6C44A0046D347 /* macOSmonitor */,
@@ -163,6 +240,28 @@
 			productReference = F475FDBA2FF6C44B0046D347 /* macOSmonitorUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		F4CF760530A7830E00CB361C /* macOSmonitorHelper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F4CF760A30A7830E00CB361C /* Build configuration list for PBXNativeTarget "macOSmonitorHelper" */;
+			buildPhases = (
+				F4CF760230A7830E00CB361C /* Sources */,
+				F4CF760330A7830E00CB361C /* Frameworks */,
+				F4CF760430A7830E00CB361C /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F4CF760730A7830E00CB361C /* macOSmonitorHelper */,
+			);
+			name = macOSmonitorHelper;
+			packageProductDependencies = (
+			);
+			productName = macOSmonitorHelper;
+			productReference = F4CF760630A7830E00CB361C /* macOSmonitorHelper */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -170,7 +269,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2660;
+				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					F475FDA22FF6C44A0046D347 = {
@@ -183,6 +282,9 @@
 					F475FDB92FF6C44B0046D347 = {
 						CreatedOnToolsVersion = 26.6;
 						TestTargetID = F475FDA22FF6C44A0046D347;
+					};
+					F4CF760530A7830E00CB361C = {
+						CreatedOnToolsVersion = 27.0;
 					};
 				};
 			};
@@ -203,6 +305,7 @@
 				F475FDA22FF6C44A0046D347 /* macOSmonitor */,
 				F475FDAF2FF6C44B0046D347 /* macOSmonitorTests */,
 				F475FDB92FF6C44B0046D347 /* macOSmonitorUITests */,
+				F4CF760530A7830E00CB361C /* macOSmonitorHelper */,
 			);
 		};
 /* End PBXProject section */
@@ -253,6 +356,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F4CF760230A7830E00CB361C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -265,6 +375,11 @@
 			isa = PBXTargetDependency;
 			target = F475FDA22FF6C44A0046D347 /* macOSmonitor */;
 			targetProxy = F475FDBB2FF6C44B0046D347 /* PBXContainerItemProxy */;
+		};
+		F4CF760E30A7857800CB361C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F4CF760530A7830E00CB361C /* macOSmonitorHelper */;
+			targetProxy = F4CF760D30A7857800CB361C /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -543,6 +658,36 @@
 			};
 			name = Release;
 		};
+		F4CF760B30A7830E00CB361C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 8QQC2WMRHS;
+				ENABLE_HARDENED_RUNTIME = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				PRODUCT_BUNDLE_IDENTIFIER = "ca.peter-jones.macOSmonitor.helper";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		F4CF760C30A7830E00CB361C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 8QQC2WMRHS;
+				ENABLE_HARDENED_RUNTIME = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				PRODUCT_BUNDLE_IDENTIFIER = "ca.peter-jones.macOSmonitor.helper";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -578,6 +723,15 @@
 			buildConfigurations = (
 				F475FDCB2FF6C44B0046D347 /* Debug */,
 				F475FDCC2FF6C44B0046D347 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F4CF760A30A7830E00CB361C /* Build configuration list for PBXNativeTarget "macOSmonitorHelper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F4CF760B30A7830E00CB361C /* Debug */,
+				F4CF760C30A7830E00CB361C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

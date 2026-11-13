@@ -1,13 +1,6 @@
 import Darwin
 import Foundation
 
-/// One finished per-process sample. `cpuTimeNanos` is total (user + system) CPU
-/// time already converted from Mach ticks to nanoseconds.
-struct ProcTaskSample: Sendable {
-    let residentBytes: UInt64
-    let cpuTimeNanos: UInt64
-}
-
 /// Everything unsafe/C lives behind this protocol so `ProcessSampler` can be
 /// tested with a fake and no other file touches raw syscalls.
 protocol ProcInfoProviding: Sendable {

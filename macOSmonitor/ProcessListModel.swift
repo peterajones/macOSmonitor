@@ -95,8 +95,8 @@ final class ProcessListModel {
     private let now: @Sendable () -> UInt64
     private let interval: Duration
 
-    init(sampler: any ProcessSampling = ProcessSampler(),
-         terminator: any ProcessTerminating = ProcessTerminator(),
+    init(sampler: any ProcessSampling = ProcessSampler(privileged: PrivilegedHelperClient.shared),
+         terminator: any ProcessTerminating = HelperBackedTerminator(),
          detailProvider: any ProcessDetailProviding = ProcInfo(),
          portProvider: any ProcessPortProviding = ProcInfo(),
          commandLineProvider: any ProcessCommandLineProviding = ProcInfo(),

@@ -10,6 +10,7 @@ import SwiftUI
 @main
 struct macOSmonitorApp: App {
     static let mainWindowID = "main"
+    static let helperWindowID = "helper"
 
     /// System vitals are the same for every window and the menu bar, so one model samples
     /// them for the whole app. Its loop starts here, once, rather than in a view's `.task`,
@@ -33,7 +34,13 @@ struct macOSmonitorApp: App {
             ProcessCommands()
             CPUTimeFormatCommands()
             MenuBarCommands(showsMenuBarExtra: $showsMenuBarExtra)
+            HelperCommands()
         }
+
+        Window("Privileged Helper", id: Self.helperWindowID) {
+            PrivilegedHelperView()
+        }
+        .windowResizability(.contentSize)
 
         MenuBarExtra(isInserted: $showsMenuBarExtra) {
             MenuBarPanel(vitalsModel: vitalsModel)
@@ -51,6 +58,17 @@ enum MenuBarSettings {
     static let shownByDefault = true
     /// The View menu item that toggles it.
     static let menuTitle = "Show in Menu Bar"
+}
+
+/// macOSmonitor ▸ Privileged Helper…, after About.
+private struct HelperCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some Commands {
+        CommandGroup(after: .appInfo) {
+            Button("Privileged Helper…") { openWindow(id: macOSmonitorApp.helperWindowID) }
+        }
+    }
 }
 
 /// View ▸ Show in Menu Bar.

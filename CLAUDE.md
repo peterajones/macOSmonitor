@@ -47,6 +47,25 @@ Each private read goes behind its own provider protocol and must return nil — 
 panel — when the interface is missing or changes shape, never crash. Re-run the
 real-hardware tests after each macOS update.
 
+**The privileged helper (`macOSmonitorHelper` target, added 2026-11-13)** is a root launchd daemon
+registered with `SMAppService.daemon` (macOSmonitor ▸ Privileged Helper…; the user approves it under
+System Settings ▸ General ▸ Login Items & Extensions ▸ App Background Activity). The app reaches it
+over the XPC Mach service `ca.peter-jones.macOSmonitor.helper`.
+- `macOSmonitor/HelperShared.swift` is compiled into **both** targets (membership exception in the
+  project): the XPC protocol, names, `HelperRules` (what the helper refuses) and the wire format.
+  Change the protocol → bump `HelperConstants.protocolVersion`.
+- Each side checks the other's code signature (`HelperConstants.clientRequirement` /
+  `helperRequirement`, team `8QQC2WMRHS`). **The helper's signing identifier is
+  `macOSmonitorHelper`** (the product name), not its bundle ID: it has no embedded Info.plist.
+  Test a requirement against the built binary with `codesign -v -R='…' <path>`.
+- The bundle layout comes from two Copy Files phases on the app target: the helper into
+  Executables, `LaunchDaemons/ca.peter-jones.macOSmonitor.helper.plist` into Wrapper
+  `Contents/Library/LaunchDaemons`.
+- The app uses it only when the kernel says EPERM (`HelperBackedTerminator`, `ProcessSampler`'s
+  denied PIDs). `ProcessSampler(privileged:)` defaults to **nil** so tests on fake PIDs never reach
+  an installed helper; only `ProcessListModel`'s default passes `PrivilegedHelperClient.shared`.
+- Check it's running: `launchctl print system/ca.peter-jones.macOSmonitor.helper`.
+
 **Samplers are `actor`s**, take an injected `now: () -> UInt64` clock so rate arithmetic is
 testable, and guard every counter delta (counters wrap and devices reset; unsigned subtraction
 traps in Swift).
