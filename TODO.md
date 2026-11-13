@@ -3,7 +3,6 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [x] Check the remaining test code and any app-side code for other Process.waitUntilExit() calls and move them to the new ChildProcess helper. (from: review harness)
 - [ ] Support multi-select termination (from: docs/superpowers/specs/2026-07-02-process-termination-design.md)
 - [ ] Add a ports column or dedicated Network tab for open sockets (from: docs/superpowers/specs/2026-07-06-ports-inspector-design.md)
 - [ ] Add per-socket byte counts and reverse-DNS of remote addresses (from: docs/superpowers/specs/2026-07-06-ports-inspector-design.md)
