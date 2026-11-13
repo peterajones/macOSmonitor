@@ -3,7 +3,6 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [x] Add per-socket byte counts and reverse-DNS of remote addresses (from: docs/superpowers/specs/2026-07-06-ports-inspector-design.md)
 - [ ] Add tests for PortsSampler (the new actor), for example that it collects sockets per process and copes with processes whose descriptors macOS withholds, and tests for the ports view's search and Show picker filtering. (from: review harness)
 
 ## Later
