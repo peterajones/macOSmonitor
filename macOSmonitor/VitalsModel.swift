@@ -26,6 +26,12 @@ final class VitalsModel {
     static let thermalHistoryCapacity = 150
     private let thermalSampler: any ThermalSampling
 
+    /// Latest power draw; nil until read, or when this Mac reports none.
+    private(set) var power: PowerReading?
+    /// Whole-system watts, one sample per vitals tick (60 s).
+    private(set) var powerHistory = MetricHistory(capacity: 60)
+    private let powerSampler: any PowerSampling
+
     private let sampler: any SystemVitalsSampling
     private let interval: Duration
     private let now: @Sendable () -> Date
@@ -34,9 +40,11 @@ final class VitalsModel {
          interval: Duration = .seconds(1),
          coreLayoutProvider: any CoreLayoutProviding = DeviceTreeCoreLayout(),
          thermalSampler: any ThermalSampling = ThermalSampler(),
+         powerSampler: any PowerSampling = PowerSampler(),
          now: @escaping @Sendable () -> Date = { Date() }) {
         self.sampler = sampler
         self.thermalSampler = thermalSampler
+        self.powerSampler = powerSampler
         coreLayout = coreLayoutProvider.read()
         self.interval = interval
         self.now = now
@@ -57,6 +65,12 @@ final class VitalsModel {
         if let headline = thermal?.headline { thermalHistory.append(headline) }
     }
 
+    /// One power read. Like temperatures, a tick without a reading appends nothing.
+    func refreshPowerOnce() async {
+        power = await powerSampler.sample()
+        if let watts = power?.systemWatts { powerHistory.append(watts) }
+    }
+
     /// The slower temperature loop, separate from `run()` so the SMC wait never delays the
     /// 1 Hz vitals. Started once by the app alongside `run()`.
     func runThermal() async {
@@ -70,6 +84,7 @@ final class VitalsModel {
     func run() async {
         while !Task.isCancelled {
             await refreshOnce()
+            await refreshPowerOnce()
             try? await Task.sleep(for: interval)
         }
     }

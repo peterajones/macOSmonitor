@@ -70,6 +70,7 @@ struct Theme: Identifiable, Equatable, Sendable {
         .disk:    RGB(r: 0.70, g: 0.38, b: 0.05),
         .battery: RGB(r: 0.08, g: 0.48, b: 0.44),
         .thermal: RGB(r: 0.92, g: 0.38, b: 0.40),
+        .energy:  RGB(r: 0.62, g: 0.52, b: 0.00),
     ]
 
     /// The colour this palette uses for a metric.

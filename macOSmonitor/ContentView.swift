@@ -49,6 +49,7 @@ struct ContentView: View {
                 Section("Performance") {
                     ForEach(Surface.performance(hasGPU: vitalsModel.vitals?.gpu != nil,
                                                 hasThermal: vitalsModel.thermal != nil,
+                                                hasEnergy: vitalsModel.power != nil,
                                                 hasBattery: vitalsModel.vitals?.battery != nil)) { item in
                         if let metric = item.metric {
                             SidebarMeter(title: item.title,
@@ -95,6 +96,8 @@ struct ContentView: View {
                 DiskPanel(model: vitalsModel)
             case .thermal:
                 ThermalPanel(model: vitalsModel)
+            case .energy:
+                EnergyPanel(model: vitalsModel)
             case .battery:
                 BatteryPanel(model: batteryModel)
             }
@@ -178,6 +181,7 @@ struct ContentView: View {
         case .network: return vitals.networkText
         case .disk:    return vitals.diskText
         case .thermal: return ThermalReading.text(vitalsModel.thermal?.headline)
+        case .energy:  return PowerReading.text(vitalsModel.power?.systemWatts)
         case .battery: return vitals.battery?.displayText ?? "—"
         case .summary, .processes, .ports: return ""
         }
@@ -208,6 +212,8 @@ struct ContentView: View {
                 : 0
         case .thermal:
             return ThermalPanel.meterFraction(vitalsModel.thermal?.headline)
+        case .energy:
+            return EnergyPanel.meterFraction(vitalsModel.power?.systemWatts, history: vitalsModel.powerHistory)
         case .battery:
             return Double(vitals.battery?.chargePercent ?? 0) / 100
         case .summary, .processes, .ports:
