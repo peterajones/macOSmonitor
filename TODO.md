@@ -3,7 +3,6 @@
 _Single source of truth for unfinished work in this project. Tick an item when it is done; the review harness records it and removes the line._
 
 ## Next
-- [x] Add on-behalf-of CPU time (work other processes do for this one) to the inspector (from: docs/superpowers/specs/2026-07-05-cpu-time-column-design.md)
 - [ ] Build a privileged XPC helper (SMAppService) for full detail on, and termination of, all processes (from: docs/superpowers/specs/2026-07-02-process-dashboard-design.md)
 
 ## Later
