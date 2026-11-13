@@ -42,6 +42,19 @@ struct PortListTests {
         #expect(rows.map(\.pid) == [20, 10, 20, 10])
     }
 
+    /// macOS withholds other users' and root's descriptors, so `ports(pid:)` returns nothing
+    /// for them. Such a process adds no rows, and the processes after it are still listed.
+    @Test func aProcessWithWithheldDescriptorsIsSkippedNotFatal() async {
+        let procs = FakeProcInfo()
+        procs.pids = [10, 20, 30]
+        procs.names = [10: "node", 20: "mDNSResponder", 30: "Safari"]
+        let ports = FakePortsByPID()
+        ports.ports = [10: [tcp(3000, state: "LISTEN")], 30: [tcp(443, state: "LISTEN")]]   // 20 withheld
+        let rows = await PortsSampler(procInfo: procs, ports: ports).sample()
+        #expect(rows.map(\.pid) == [30, 10])
+        #expect(!rows.contains { $0.processName == "mDNSResponder" })
+    }
+
     @Test func identicalSocketsStillGetDistinctIDs() async {
         // SO_REUSEPORT lets one process hold the same port twice; a Table with duplicate IDs
         // misdraws rows.
