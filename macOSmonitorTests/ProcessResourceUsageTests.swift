@@ -29,6 +29,31 @@ struct ProcessResourceUsageTests {
         #expect(ProcessUsageRates(from: low, to: high, overNanos: 0) == nil)
     }
 
+    /// Mach ticks to nanoseconds with this Mac's timebase; Apple Silicon's is 125/3.
+    @Test func ticksConvertWithTheTimebase() {
+        #expect(ProcInfo.nanos(ticks: 3_000, numer: 125, denom: 3) == 125_000)
+        #expect(ProcInfo.nanos(ticks: 7, numer: 1, denom: 1) == 7)        // Intel: ticks are ns
+    }
+
+    /// Billed and serviced CPU time come from the same struct as `ri_user_time`, which is in
+    /// Mach ticks (it equals `pti_total_user`), so they must be converted like CPU time.
+    @Test func onBehalfOfTimesAreConvertedFromTicks() throws {
+        var raw = rusage_info_v6()
+        let status = withUnsafeMutablePointer(to: &raw) {
+            $0.withMemoryRebound(to: rusage_info_t?.self, capacity: 1) { proc_pid_rusage(getpid(), RUSAGE_INFO_V6, $0) }
+        }
+        try #require(status == 0)
+        let usage = try #require(ProcInfo().usage(pid: getpid()))
+        var timebase = mach_timebase_info_data_t()
+        mach_timebase_info(&timebase)
+        // The counters only grow, so the reading taken second is at least the converted raw one,
+        // and (within a few ms of each other) not wildly above it.
+        let billed = ProcInfo.nanos(ticks: raw.ri_billed_system_time, numer: timebase.numer, denom: timebase.denom)
+        let serviced = ProcInfo.nanos(ticks: raw.ri_serviced_system_time, numer: timebase.numer, denom: timebase.denom)
+        #expect(usage.billedCPUNanos >= billed && usage.billedCPUNanos <= billed + 50_000_000)
+        #expect(usage.servicedCPUNanos >= serviced && usage.servicedCPUNanos <= serviced + 50_000_000)
+    }
+
     @Test func energyReadsInSensibleUnits() {
         func text(_ nj: UInt64) -> String { ProcessResourceUsage(diskBytesRead: 0, diskBytesWritten: 0, energyNanojoules: nj).energyText }
         #expect(text(12_300_000) == "12.3 mJ")

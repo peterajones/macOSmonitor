@@ -54,8 +54,17 @@ struct ProcInfo: ProcInfoProviding {
         // proc_pidinfo returns `size` on success; 0/negative on EPERM or vanished PID.
         guard proc_pidinfo(pid, PROC_PIDTASKINFO, 0, &info, size) == size else { return nil }
         let ticks = info.pti_total_user &+ info.pti_total_system
-        let nanos = ticks &* UInt64(timebase.numer) / UInt64(timebase.denom)
-        return ProcTaskSample(residentBytes: info.pti_resident_size, cpuTimeNanos: nanos)
+        return ProcTaskSample(residentBytes: info.pti_resident_size, cpuTimeNanos: nanos(ticks: ticks))
+    }
+
+    /// Mach ticks to nanoseconds with this Mac's timebase.
+    func nanos(ticks: UInt64) -> UInt64 {
+        Self.nanos(ticks: ticks, numer: timebase.numer, denom: timebase.denom)
+    }
+
+    /// `ticks * numer / denom`. Apple Silicon's timebase is 125/3; on Intel ticks are already ns.
+    static func nanos(ticks: UInt64, numer: UInt32, denom: UInt32) -> UInt64 {
+        ticks &* UInt64(numer) / UInt64(denom)
     }
 
     /// Best-effort process name. `proc_name` reads the BSD "comm" field, but macOS denies it

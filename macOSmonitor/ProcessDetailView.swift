@@ -30,6 +30,12 @@ struct ProcessDetailView: View {
                     LabeledContent("PID", value: String(row.pid))
                     LabeledContent("CPU %", value: row.cpuText)
                     LabeledContent("CPU Time", value: row.cpuTimeText(cpuTimeFormat))
+                    LabeledContent("Done for it by others",
+                                   value: model.selectedUsage.map { cpuTimeFormat.string(nanos: $0.billedCPUNanos) } ?? "—")
+                        .help("CPU time other processes spent working for this one, such as WindowServer drawing its windows. Not included in CPU Time.")
+                    LabeledContent("Done by it for others",
+                                   value: model.selectedUsage.map { cpuTimeFormat.string(nanos: $0.servicedCPUNanos) } ?? "—")
+                        .help("CPU time this process spent working for other processes. Already part of its CPU Time.")
                     LabeledContent("GPU Time", value: cpuTimeFormat.string(nanos: row.gpuTimeNanos))
                     LabeledContent("Memory", value: row.memoryText)
                 }

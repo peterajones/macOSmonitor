@@ -1,13 +1,19 @@
 import Darwin
 import Foundation
 
-/// A process's cumulative disk I/O and energy, from `proc_pid_rusage` (own processes only).
+/// A process's cumulative disk I/O, energy and on-behalf-of CPU time, from `proc_pid_rusage`
+/// (own processes only).
 struct ProcessResourceUsage: Equatable, Sendable {
     let diskBytesRead: UInt64
     let diskBytesWritten: UInt64
     /// The kernel's estimate of energy used, in nanojoules (`ri_energy_nj`). Not Activity
     /// Monitor's "Energy Impact", which is Apple's own undisclosed score.
     let energyNanojoules: UInt64
+    /// CPU time other processes spent working for this one, billed to it by the kernel's
+    /// voucher accounting (WindowServer drawing its windows, a daemon serving its request).
+    var billedCPUNanos: UInt64 = 0
+    /// CPU time this process spent working for others.
+    var servicedCPUNanos: UInt64 = 0
 }
 
 /// Per-second rates between two readings of the same process.
@@ -64,8 +70,11 @@ extension ProcInfo: ProcessResourceUsageProviding {
             }
         }
         guard result == 0 else { return nil }
+        // ri_*_time are Mach ticks, like proc_taskinfo's (ri_user_time equals pti_total_user).
         return ProcessResourceUsage(diskBytesRead: info.ri_diskio_bytesread,
                                     diskBytesWritten: info.ri_diskio_byteswritten,
-                                    energyNanojoules: info.ri_energy_nj)
+                                    energyNanojoules: info.ri_energy_nj,
+                                    billedCPUNanos: nanos(ticks: info.ri_billed_system_time),
+                                    servicedCPUNanos: nanos(ticks: info.ri_serviced_system_time))
     }
 }
