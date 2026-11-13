@@ -62,6 +62,32 @@ enum ProcessSignal: CaseIterable, Sendable {
             "“\(name)” (PID \(pid)) will be sent SIGHUP. Many background services reload their settings; most other programs quit."
         }
     }
+
+    /// The batch dialog's title: "Quit 6 processes?"
+    func confirmTitle(count: Int) -> String { "\(actionTitle) \(count) processes?" }
+
+    /// The batch dialog's message; `groupedNames` is `ProcessBatch.groupedNames`.
+    func confirmMessage(groupedNames names: String, count: Int) -> String {
+        switch self {
+        case .terminate:
+            "These processes will be asked to quit: \(names)."
+        case .kill:
+            "Force-quitting ends these processes immediately; unsaved work is lost: \(names)."
+        case .stop:
+            "These processes will be paused (SIGSTOP) until you resume them: \(names)."
+        case .resume:
+            "These processes will be resumed (SIGCONT): \(names)."
+        case .hangUp:
+            "These processes will be sent SIGHUP: \(names). Many background services reload their settings; most other programs quit."
+        }
+    }
+
+    /// Added to a confirmation when some selected processes won't be signalled.
+    static func skippedNote(_ count: Int) -> String {
+        count == 1
+            ? "1 selected process can’t be signalled and will be left alone."
+            : "\(count) selected processes can’t be signalled and will be left alone."
+    }
 }
 
 /// Result of attempting to signal a process.

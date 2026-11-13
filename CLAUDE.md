@@ -142,7 +142,8 @@ anything by deleting the code it guards and watching it fail.
   inspector followed the new PID. Hand-checked on 2026-11-09 (Xcode 27, macOS 27.2, sectioned
   table): the highlight and inspector PID stayed put. Re-checked by Peter on 2026-11-10 at
   `2f64766`, after that day's cell-content changes (bold search matches, themed cells): still
-  passes. No commit targeted the cause, so it may have
+  passes. Re-checked by Peter on 2026-11-13 after multi-select (the table binds
+  `Set<pid_t>`; exited PIDs are pruned from it each refresh): still passes. No commit targeted the cause, so it may have
   gone away with the toolchain. **Safety: if it returns, acting on a stale highlight can Force-Quit
   the wrong process.** Re-run this repro after changing how `Table` rows or selection work; full
   steps in the body of commit `cd69ee7`.

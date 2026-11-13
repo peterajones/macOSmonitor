@@ -6,12 +6,14 @@ import Observation
 final class ProcessListModel {
     private(set) var rows: [ProcessInfoRow] = []
 
-    /// Currently selected process (single source of truth, bound to the table).
-    var selectedPID: pid_t? {
-        // Collapse the environment when the selection moves, so revealing one process's
-        // variables (which often hold secrets) never reveals another's.
+    /// The table's selection (single source of truth, bound to the table). Several rows can
+    /// be selected for Quit / Force Quit; the inspector shows one process only.
+    var selectedPIDs: Set<pid_t> = [] {
+        // Collapse the environment when the inspected process changes (including to "several
+        // selected"), so revealing one process's variables (which often hold secrets) never
+        // reveals another's.
         didSet {
-            if selectedPID != oldValue {
+            if Self.sole(selectedPIDs) != Self.sole(oldValue) {
                 isEnvironmentRevealed = false
                 isOpenFilesExpanded = false
                 isThreadsExpanded = false
@@ -19,6 +21,22 @@ final class ProcessListModel {
                 reniceError = nil
             }
         }
+    }
+
+    /// The process the inspector shows: the selection when exactly one row is selected, else
+    /// nil. Setting it selects that one process (or nothing).
+    var selectedPID: pid_t? {
+        get { Self.sole(selectedPIDs) }
+        set { selectedPIDs = newValue.map { [$0] } ?? [] }
+    }
+
+    private static func sole(_ pids: Set<pid_t>) -> pid_t? {
+        pids.count == 1 ? pids.first : nil
+    }
+
+    /// The selected processes' latest rows, in table-sample order; exited ones drop out.
+    var selectedRows: [ProcessInfoRow] {
+        rows.filter { selectedPIDs.contains($0.pid) }
     }
     /// The selected process's nice value; nil when none selected or unreadable.
     private(set) var selectedNice: Int32?
@@ -94,6 +112,11 @@ final class ProcessListModel {
     /// One sample → publish rows, then refresh the selected process's details (live cadence).
     func refreshOnce() async {
         rows = await sampler.sample()
+        // Drop exited processes from the selection (the table doesn't), so a finished batch
+        // quit returns to "No Selection", a lone survivor gets the full inspector, and a PID
+        // later reused by another program never turns up already selected.
+        let live = Set(rows.map(\.pid))
+        if !selectedPIDs.isSubset(of: live) { selectedPIDs.formIntersection(live) }
         refreshSelection()
     }
 
@@ -113,6 +136,17 @@ final class ProcessListModel {
     /// Send `signal` (Quit, Force Quit, Pause, Resume, Hang Up) to a process.
     func send(_ signal: ProcessSignal, to pid: pid_t) -> TerminationResult {
         terminator.send(signal, to: pid)
+    }
+
+    /// Send `signal` to each target in turn (already confirmed by the user). A target whose
+    /// PID is no longer in the latest sample under the same name is not signalled: the
+    /// process exited, and the PID may now belong to a different program.
+    func send(_ signal: ProcessSignal, to targets: [SignalTarget]) -> [SignalOutcome] {
+        targets.map { target in
+            let stillRunning = rows.contains { $0.pid == target.pid && $0.name == target.name }
+            return SignalOutcome(target: target,
+                                 result: stillRunning ? terminator.send(signal, to: target.pid) : .noSuchProcess)
+        }
     }
 
     /// Refresh `selectedDetails` for the current `selectedPID` (nil if none/denied).

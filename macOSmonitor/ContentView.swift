@@ -59,6 +59,7 @@ struct ContentView: View {
             case .processes:
                 ProcessesView(model: model,
                               vitalsModel: vitalsModel,
+                              sections: sections,
                               sortOrder: $sortOrder,
                               showInspector: $showInspector,
                               searchText: $searchText,
@@ -129,15 +130,29 @@ struct ContentView: View {
         .task { await batteryModel.run() }
     }
 
+    /// The process table's rows as filtered and sorted now. Built here so the toolbar acts
+    /// on exactly the rows `ProcessesView` shows.
+    private var sections: [ProcessTableSection] {
+        ProcessTableSection.make(rows: model.rows,
+                                 searchText: searchText,
+                                 filter: ProcessFilter(preset: filterPreset, hidesSystem: hidesSystemProcesses),
+                                 sortOrder: sortOrder)
+    }
+
+    /// The selection as Quit / Force Quit would act on it: visible rows only.
+    private var selectionBatch: ProcessBatch {
+        ProcessBatch.make(pids: model.selectedPIDs, visibleRows: sections.flatMap(\.rows))
+    }
+
     /// Quit / Force Quit act only on the Processes surface, where the selection is visible.
     private var canTerminateSelection: Bool {
-        surface == .processes && model.selectedRow?.canTerminate == true
+        surface == .processes && !selectionBatch.targets.isEmpty
     }
 
     /// Quit and Force Quit both confirm, so the toolbar only ever stages a request.
     private func processRequest(_ signal: ProcessSignal) -> PendingTermination? {
         guard surface == .processes else { return nil }
-        return PendingTermination.request(for: model.selectedRow, signal: signal)
+        return PendingTermination.request(for: selectionBatch, signal: signal)
     }
 
     private func meterValue(_ surface: Surface) -> String {

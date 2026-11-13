@@ -12,9 +12,11 @@ final class FakeSampler: ProcessSampling, @unchecked Sendable {
 final class FakeTerminator: ProcessTerminating, @unchecked Sendable {
     private(set) var lastPID: pid_t?
     private(set) var lastSignal: ProcessSignal?
+    /// Every signal sent, in order.
+    private(set) var sent: [(signal: ProcessSignal, pid: pid_t)] = []
     var result: TerminationResult = .success
     func send(_ signal: ProcessSignal, to pid: pid_t) -> TerminationResult {
-        lastPID = pid; lastSignal = signal; return result
+        lastPID = pid; lastSignal = signal; sent.append((signal, pid)); return result
     }
 }
 
@@ -254,5 +256,86 @@ struct ProcessListModelTests {
         #expect(model.selectedNice == 4)
         #expect(model.niceDraft == 6)
         #expect(model.reniceError == nil)
+    }
+
+    // MARK: - Multi-selection
+
+    @Test func selectedPIDIsTheSoleSelectionAndNilForSeveral() {
+        let model = ProcessListModel(sampler: FakeSampler())
+        model.selectedPIDs = [5]
+        #expect(model.selectedPID == 5)
+        model.selectedPIDs = [5, 6]
+        #expect(model.selectedPID == nil)
+        model.selectedPID = 7
+        #expect(model.selectedPIDs == [7])
+        model.selectedPID = nil
+        #expect(model.selectedPIDs.isEmpty)
+    }
+
+    @Test func growingTheSelectionResetsInspectorState() {
+        let model = ProcessListModel(sampler: FakeSampler())
+        model.selectedPIDs = [5]
+        model.isEnvironmentRevealed = true
+        model.niceDraft = 4
+        model.selectedPIDs = [5, 6]
+        #expect(model.isEnvironmentRevealed == false)
+        #expect(model.niceDraft == nil)
+    }
+
+    @Test func selectedRowsFollowRowOrder() async {
+        let fake = FakeSampler()
+        fake.next = [ProcessInfoRow(pid: 3, name: "c", cpuPercent: nil, memoryBytes: 1),
+                     ProcessInfoRow(pid: 1, name: "a", cpuPercent: nil, memoryBytes: 1),
+                     ProcessInfoRow(pid: 2, name: "b", cpuPercent: nil, memoryBytes: 1)]
+        let model = ProcessListModel(sampler: fake)
+        await model.refreshOnce()
+        model.selectedPIDs = [2, 3, 99]
+        #expect(model.selectedRows.map(\.pid) == [3, 2])
+    }
+
+    @Test func batchSendSkipsAPIDNowRunningSomethingElse() async {
+        let sampler = FakeSampler()
+        sampler.next = [ProcessInfoRow(pid: 1, name: "node", cpuPercent: nil, memoryBytes: 1),
+                        ProcessInfoRow(pid: 2, name: "Safari", cpuPercent: nil, memoryBytes: 1)]
+        let terminator = FakeTerminator()
+        let model = ProcessListModel(sampler: sampler, terminator: terminator)
+        await model.refreshOnce()
+
+        // pid 2 was "node" when confirmed but is Safari now; pid 3 has gone.
+        let outcomes = model.send(.terminate, to: [.init(pid: 1, name: "node"),
+                                                   .init(pid: 2, name: "node"),
+                                                   .init(pid: 3, name: "node")])
+        #expect(terminator.sent.map(\.pid) == [1])
+        #expect(outcomes.map(\.result) == [.success, .noSuchProcess, .noSuchProcess])
+    }
+
+    @Test func batchResumeSignalsEveryTarget() async {
+        let sampler = FakeSampler()
+        sampler.next = (1...3).map { ProcessInfoRow(pid: $0, name: "node", cpuPercent: nil, memoryBytes: 1) }
+        let terminator = FakeTerminator()
+        let model = ProcessListModel(sampler: sampler, terminator: terminator)
+        await model.refreshOnce()
+
+        _ = model.send(.resume, to: (1...3).map { SignalTarget(pid: $0, name: "node") })
+        #expect(terminator.sent.map(\.pid) == [1, 2, 3])
+        #expect(terminator.sent.allSatisfy { $0.signal == .resume })
+    }
+
+    @Test func refreshDropsExitedProcessesFromTheSelection() async {
+        let sampler = FakeSampler()
+        sampler.next = [ProcessInfoRow(pid: 1, name: "node", cpuPercent: nil, memoryBytes: 1),
+                        ProcessInfoRow(pid: 2, name: "node", cpuPercent: nil, memoryBytes: 1)]
+        let model = ProcessListModel(sampler: sampler)
+        await model.refreshOnce()
+        model.selectedPIDs = [1, 2]
+
+        sampler.next = [ProcessInfoRow(pid: 2, name: "node", cpuPercent: nil, memoryBytes: 1)]
+        await model.refreshOnce()
+        #expect(model.selectedPIDs == [2])
+        #expect(model.selectedPID == 2)            // the survivor gets the full inspector
+
+        sampler.next = []
+        await model.refreshOnce()
+        #expect(model.selectedPIDs.isEmpty)        // all quit: back to "No Selection"
     }
 }

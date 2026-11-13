@@ -6,6 +6,8 @@ import SwiftUI
 /// does not reliably re-evaluate on the presenting view's observable-state changes.
 struct ProcessDetailView: View {
     let model: ProcessListModel
+    /// The rows the table shows now, so a multi-selection summary names what Quit acts on.
+    let visibleRows: [ProcessInfoRow]
 
     /// A nice change awaiting confirmation. Transient view state: losing it on navigation
     /// just cancels the dialog, which is the right outcome anyway.
@@ -18,7 +20,10 @@ struct ProcessDetailView: View {
     var body: some View {
         @Bindable var model = model   // for the Environment disclosure's isExpanded binding
 
-        if let row = model.selectedRow {
+        if let summary = SelectionSummary(pids: model.selectedPIDs, visibleRows: visibleRows) {
+            // Several selected: the inspector shows one process only, so it summarises.
+            ContentUnavailableView(summary.title, systemImage: "cpu", description: Text(summary.detail))
+        } else if let row = model.selectedRow {
             Form {
                 Section("Process") {
                     LabeledContent("Name", value: row.name)

@@ -15,6 +15,9 @@ import SwiftUI
 struct ProcessesView: View {
     let model: ProcessListModel
     let vitalsModel: VitalsModel
+    /// The table's rows as filtered and sorted now, built by `ContentView` so its toolbar
+    /// acts on exactly the rows shown here.
+    let sections: [ProcessTableSection]
 
     @Binding var sortOrder: [KeyPathComparator<ProcessInfoRow>]
     @Binding var showInspector: Bool
@@ -27,7 +30,7 @@ struct ProcessesView: View {
     @Binding var errorMessage: String?
 
     var body: some View {
-        @Bindable var model = model   // enables $model.selectedPID binding
+        @Bindable var model = model   // enables the $model.selectedPIDs binding
 
         VStack(spacing: 0) {
             SystemVitalsView(vitals: vitalsModel.vitals, thermal: vitalsModel.thermal)
@@ -38,28 +41,27 @@ struct ProcessesView: View {
                              savedSearches: $savedSearches)
             Divider()
             ProcessTableView(
-                sections: ProcessTableSection.make(
-                    rows: model.rows,
-                    searchText: searchText,
-                    filter: ProcessFilter(preset: filterPreset, hidesSystem: hidesSystemProcesses),
-                    sortOrder: sortOrder),
+                sections: sections,
                 searchText: searchText,
-                selection: $model.selectedPID,
+                selection: $model.selectedPIDs,
                 sortOrder: $sortOrder
             )
+            // `ids` is what was right-clicked: the whole selection when the click is inside
+            // it, otherwise just the clicked row (the selection is left alone) — the standard
+            // macOS rule, so a right-click never acts on rows you didn't point at.
             .contextMenu(forSelectionType: pid_t.self) { ids in
-                let row = ids.first.flatMap { id in model.rows.first(where: { $0.id == id }) }
-                Button(ProcessSignal.terminate.actionTitle) { requestSignal(.terminate, for: row) }
-                    .disabled(row?.canTerminate != true)
-                Button(ProcessSignal.kill.actionTitle) { requestSignal(.kill, for: row) }
-                    .disabled(row?.canTerminate != true)
+                let batch = batch(for: ids)
+                Button(ProcessSignal.terminate.actionTitle) { requestSignal(.terminate, for: batch) }
+                    .disabled(batch.targets.isEmpty)
+                Button(ProcessSignal.kill.actionTitle) { requestSignal(.kill, for: batch) }
+                    .disabled(batch.targets.isEmpty)
                 Divider()
                 Menu("Send Signal") {
                     ForEach(ProcessSignal.sendSignalMenu, id: \.self) { signal in
-                        Button(signal.menuTitle) { requestSignal(signal, for: row) }
+                        Button(signal.menuTitle) { requestSignal(signal, for: batch) }
                     }
                 }
-                .disabled(row?.canTerminate != true)
+                .disabled(batch.targets.isEmpty)
             }
         }
         // The Quit / Force Quit / inspector toolbar buttons live on ContentView's window
@@ -69,11 +71,11 @@ struct ProcessesView: View {
                     placement: .toolbar, prompt: "Name, PID, or pid: user: path:")
         .focusedSceneValue(\.searchPresented, $searchPresented)
         .focusedSceneValue(\.processTermination, ProcessTerminationActions(
-            canTerminate: selectedRow?.canTerminate == true,
-            request: { signal in requestSignal(signal, for: selectedRow) }))
-        .onChange(of: model.selectedPID) { model.refreshSelection() }
+            canTerminate: !batch(for: model.selectedPIDs).targets.isEmpty,
+            request: { signal in requestSignal(signal, for: batch(for: model.selectedPIDs)) }))
+        .onChange(of: model.selectedPIDs) { model.refreshSelection() }
         .inspector(isPresented: $showInspector) {
-            ProcessDetailView(model: model)
+            ProcessDetailView(model: model, visibleRows: sections.flatMap(\.rows))
                 .inspectorColumnWidth(min: 240, ideal: 300, max: 420)
         }
         .confirmationDialog(
@@ -86,7 +88,7 @@ struct ProcessesView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: { item in
-            Text(item.signal.confirmMessage(name: item.name, pid: item.pid))
+            Text(item.message)
         }
         .alert(
             "Couldn’t signal process",
@@ -101,18 +103,20 @@ struct ProcessesView: View {
 
     // MARK: - Selection helpers
 
-    private var selectedRow: ProcessInfoRow? { model.selectedRow }
+    /// What a signal to `pids` would act on: only rows the table shows right now.
+    private func batch(for pids: Set<pid_t>) -> ProcessBatch {
+        ProcessBatch.make(pids: pids, visibleRows: sections.flatMap(\.rows))
+    }
 
     private var confirmTitle: String {
-        guard let item = pendingTermination else { return "" }
-        return item.signal.confirmTitle(name: item.name)
+        pendingTermination?.title ?? ""
     }
 
     // MARK: - Actions
 
     /// Confirms first, except for signals that don't need it (Resume), which are sent at once.
-    private func requestSignal(_ signal: ProcessSignal, for row: ProcessInfoRow?) {
-        guard let request = PendingTermination.request(for: row, signal: signal) else { return }
+    private func requestSignal(_ signal: ProcessSignal, for batch: ProcessBatch) {
+        guard let request = PendingTermination.request(for: batch, signal: signal) else { return }
         if signal.needsConfirmation {
             pendingTermination = request
         } else {
@@ -120,20 +124,11 @@ struct ProcessesView: View {
         }
     }
 
+    /// Sends the confirmed signal; quit processes drop off the next ~1 Hz refresh, so only
+    /// failures are reported, in one alert.
     private func perform(_ item: PendingTermination) {
-        let verb = item.signal.actionTitle.lowercased()
-        switch model.send(item.signal, to: item.pid) {
-        case .success:
-            break   // a quit process drops off the next ~1 Hz refresh; status updates likewise
-        case .denied:
-            errorMessage = "Couldn’t \(verb) “\(item.name)”: permission denied."
-        case .noSuchProcess:
-            errorMessage = "“\(item.name)” is no longer running."
-        case .refusedSelfPause:
-            errorMessage = "macOSmonitor can’t pause itself: nothing would be left to resume it."
-        case .failure(let reason):
-            errorMessage = "Couldn’t \(verb) “\(item.name)”: \(reason)."
-        }
+        let outcomes = model.send(item.signal, to: item.targets)
+        errorMessage = SignalOutcome.failureMessage(outcomes, signal: item.signal)
     }
 
     /// Bridges an optional-state binding to the Bool binding dialogs/alerts want:
@@ -146,21 +141,6 @@ struct ProcessesView: View {
     }
 }
 
-/// A signal (Quit, Force Quit, Pause, …) awaiting confirmation.
-/// Not file-private: `ContentView` owns this state so it survives navigation.
-struct PendingTermination: Identifiable {
-    let id = UUID()
-    let pid: pid_t
-    let name: String
-    let signal: ProcessSignal
-
-    /// The request for `row`, or nil when there is none or we may not signal it.
-    static func request(for row: ProcessInfoRow?, signal: ProcessSignal) -> PendingTermination? {
-        guard let row, row.canTerminate else { return nil }
-        return PendingTermination(pid: row.pid, name: row.name, signal: signal)
-    }
-}
-
 // MARK: - Table Helper View
 
 private struct ProcessTableView: View {
@@ -168,7 +148,7 @@ private struct ProcessTableView: View {
     /// Bolds the matched letters in the Name and PID columns.
     let searchText: String
     private var query: ProcessQuery { ProcessQuery(searchText) }
-    @Binding var selection: pid_t?
+    @Binding var selection: Set<pid_t>
     @Binding var sortOrder: [KeyPathComparator<ProcessInfoRow>]
 
     @Environment(\.theme) private var theme
@@ -179,31 +159,31 @@ private struct ProcessTableView: View {
         Table(of: ProcessInfoRow.self, selection: $selection, sortOrder: $sortOrder) {
             TableColumn("Name", value: \.name) { row in
                 Text(MatchHighlight.attributed(row.name, terms: query.nameHighlights))
-                    .themedCell(theme, selected: row.pid == selection)
+                    .themedCell(theme, selected: selection.contains(row.pid))
             }
             TableColumn("PID", value: \.pid) { row in
                 Text(MatchHighlight.attributed(String(row.pid), terms: query.pidHighlights(for: row.pid)))
-                    .themedCell(theme, selected: row.pid == selection)
+                    .themedCell(theme, selected: selection.contains(row.pid))
             }
             TableColumn("CPU %", value: \.cpuSortKey) { row in
                 Text(row.cpuText)
                     .monospacedDigit()
-                    .themedCell(theme, selected: row.pid == selection)
+                    .themedCell(theme, selected: selection.contains(row.pid))
             }
             TableColumn("CPU Time", value: \.cpuTimeSortKey) { row in
                 Text(row.cpuTimeText(cpuTimeFormat))
                     .monospacedDigit()
-                    .themedCell(theme, selected: row.pid == selection)
+                    .themedCell(theme, selected: selection.contains(row.pid))
             }
             TableColumn("GPU %", value: \.gpuSortKey) { row in
                 Text(row.gpuText)
                     .monospacedDigit()
-                    .themedCell(theme, selected: row.pid == selection)
+                    .themedCell(theme, selected: selection.contains(row.pid))
             }
             TableColumn("Memory", value: \.memSortKey) { row in
                 Text(row.memoryText)
                     .monospacedDigit()
-                    .themedCell(theme, selected: row.pid == selection)
+                    .themedCell(theme, selected: selection.contains(row.pid))
             }
         } rows: {
             ForEach(sections) { section in
