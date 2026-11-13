@@ -9,6 +9,10 @@ struct PortRow: Identifiable, Hashable, Sendable {
     let pid: pid_t
     let processName: String
     let port: ProcessPort
+    /// Bytes this socket has moved, from NetworkStatistics; nil when it has no reading.
+    var counts: SocketCounts? = nil
+    /// Per-second rates since the previous tick; nil on a socket's first tick.
+    var rates: SocketRates? = nil
 
     /// "127.0.0.1:3000", "*:5353".
     var localText: String { "\(port.localAddress):\(port.localPort)" }
@@ -119,22 +123,66 @@ final class PortsModel {
     /// Reverse-DNS names of the rows' remote addresses, where they have one.
     private(set) var hostNames: [String: String] = [:]
 
+    /// False when per-socket byte counts can't be read (the private framework is missing).
+    private(set) var isTrafficAvailable = true
+
     private let sampler: any PortsSampling
     private let dns: ReverseDNS
+    private let traffic: any SocketTrafficProviding
+    private let now: @Sendable () -> UInt64
     private let interval: Duration
+    /// The previous tick's counts, for rates.
+    @ObservationIgnored private var lastCounts: (counts: [String: SocketCounts], nanos: UInt64)?
 
     init(sampler: any PortsSampling = PortsSampler(), dns: ReverseDNS = ReverseDNS(),
+         traffic: any SocketTrafficProviding = NStatSocketTraffic(),
+         now: @escaping @Sendable () -> UInt64 = { DispatchTime.now().uptimeNanoseconds },
          interval: Duration = .seconds(2)) {
         self.sampler = sampler
         self.dns = dns
+        self.traffic = traffic
+        self.now = now
         self.interval = interval
     }
 
     /// One sample and its host names, in order. `run()` doesn't use this: there the names
     /// are looked up beside the loop, so the table never waits on DNS.
     func refreshOnce() async {
-        rows = await sampler.sample()
+        await sampleOnce()
         await resolveHostNames()
+    }
+
+    /// The sockets, with each one's byte counts and rates attached.
+    private func sampleOnce() async {
+        var sampled = await sampler.sample()
+        guard let readings = await traffic.read() else {
+            isTrafficAvailable = false
+            lastCounts = nil
+            rows = sampled
+            return
+        }
+        isTrafficAvailable = true
+        // Two sources with the same key (identical sockets) are summed.
+        var counts: [String: SocketCounts] = [:]
+        for reading in readings {
+            let old = counts[reading.key]
+            counts[reading.key] = SocketCounts(rxBytes: (old?.rxBytes ?? 0) &+ reading.counts.rxBytes,
+                                               txBytes: (old?.txBytes ?? 0) &+ reading.counts.txBytes)
+        }
+        let nanos = now()
+        for index in sampled.indices {
+            let key = sampled[index].trafficKey
+            guard let current = counts[key] else { continue }
+            sampled[index].counts = current
+            if let last = lastCounts, nanos > last.nanos, let before = last.counts[key],
+               current.rxBytes >= before.rxBytes, current.txBytes >= before.txBytes {
+                let seconds = Double(nanos - last.nanos) / 1_000_000_000
+                sampled[index].rates = SocketRates(rxPerSec: Double(current.rxBytes - before.rxBytes) / seconds,
+                                                   txPerSec: Double(current.txBytes - before.txBytes) / seconds)
+            }
+        }
+        lastCounts = (counts, nanos)
+        rows = sampled
     }
 
     /// Looks up the current rows' remote addresses (new ones only: answers are cached).
@@ -153,7 +201,7 @@ final class PortsModel {
         var lookups: Task<Void, Never>?
         defer { lookups?.cancel() }
         while !Task.isCancelled {
-            rows = await sampler.sample()
+            await sampleOnce()
             if !isResolving {
                 isResolving = true
                 lookups = Task { [weak self] in

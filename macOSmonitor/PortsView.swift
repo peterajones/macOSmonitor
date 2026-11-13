@@ -58,6 +58,12 @@ struct PortsView: View {
                 TableColumn("State", value: \.stateText) { row in
                     Text(row.stateText).themedPortCell(theme)
                 }
+                TableColumn("Received", value: \.receivedSortKey) { row in
+                    Text(row.receivedText).monospacedDigit().themedPortCell(theme)
+                }
+                TableColumn("Sent", value: \.sentSortKey) { row in
+                    Text(row.sentText).monospacedDigit().themedPortCell(theme)
+                }
             }
             // Same theming as the process table: the System theme keeps the native look.
             .scrollContentBackground(theme.usesSystemColors ? .automatic : .hidden)

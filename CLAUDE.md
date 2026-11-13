@@ -118,6 +118,15 @@ anything by deleting the code it guards and watching it fail.
   repeating the process-spawning suites 40×). Use `ChildProcess` (tests target): `posix_spawn`
   + `waitpid`, with signal dispositions reset so the child doesn't inherit the test host's
   ignored SIGTERM/SIGHUP. Many tests stuck with no output = sample the host: `sample <pid> 1`.
+- **Block parameters in a `@convention(c)` function type are NON-escaping by default.** A
+  private C API that keeps the block (NetworkStatistics' source/counts/removed handlers) then
+  traps at run time with "non-escaping closure has escaped", crashing the test host. Mark each
+  such parameter `@escaping` in the typealias (see `NStatSocketTraffic`).
+- **NetworkStatistics: descriptions lag, counts lack addresses.** A source's description
+  dictionary names the process and addresses, but its byte counts are a snapshot a query behind
+  (a fresh 50 KB transfer read 0). The counts dictionary is live but in practice has no
+  addresses. Take identity from descriptions and bytes from counts, joined by source. Sources
+  register asynchronously after `NStatManagerAddAll…`, so the first read returns none.
 - **Count test results with an UNANCHORED grep.** Parallel test output interleaves and can split a
   result line, so `grep -cE '^Test case .* passed'` under-reports. Use `grep -c "' passed on '"`.
 - **`defaults` does NOT reach this app's preferences.** It resolves the domain to a container path

@@ -80,14 +80,14 @@ extension ProcInfo: ProcessPortProviding {
                            remoteAddress: remoteAddress, remotePort: remotePort, state: state)
     }
 
-    private static func ipv4(_ addr: in_addr) -> String? {
+    static func ipv4(_ addr: in_addr) -> String? {
         var a = addr
         var buffer = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
         guard inet_ntop(AF_INET, &a, &buffer, socklen_t(buffer.count)) != nil else { return nil }
         return String(cBuffer: buffer)
     }
 
-    private static func ipv6(_ addr: in6_addr) -> String? {
+    static func ipv6(_ addr: in6_addr) -> String? {
         var a = addr
         var buffer = [CChar](repeating: 0, count: Int(INET6_ADDRSTRLEN))
         guard inet_ntop(AF_INET6, &a, &buffer, socklen_t(buffer.count)) != nil else { return nil }
@@ -95,7 +95,7 @@ extension ProcInfo: ProcessPortProviding {
     }
 
     /// Wildcard (0.0.0.0 / ::) renders as "*".
-    private static func wildcarded(_ text: String) -> String {
+    static func wildcarded(_ text: String) -> String {
         (text == "0.0.0.0" || text == "::") ? "*" : text
     }
 
