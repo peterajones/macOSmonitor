@@ -10,6 +10,9 @@ struct ContentView: View {
     /// Owned by the app, shared with the menu bar and other windows; its loop runs there.
     let vitalsModel: VitalsModel
     @State private var batteryModel = BatteryModel()
+    /// Sampled only while the Ports surface shows (its view runs the loop); held here so the
+    /// last sample is on screen at once when you come back.
+    @State private var portsModel = PortsModel()
     @State private var surface: Surface? = .summary
     @AppStorage("themeID") private var themeID: String = Theme.system.id
 
@@ -22,6 +25,10 @@ struct ContentView: View {
     @State private var searchPresented = false
     @State private var pendingTermination: PendingTermination?
     @State private var errorMessage: String?
+    // The Ports surface's view state, held here for the same reason as the Processes state.
+    @State private var portsSearchText = ""
+    @State private var portsFilter: PortFilter = .all
+    @State private var portsSortOrder: [KeyPathComparator<PortRow>] = []
     // Remembered across launches, like Activity Monitor's View menu choice. Search text
     // itself is not: a filter you forgot about would hide processes on the next launch.
     @AppStorage("processFilterPreset") private var filterPreset: ProcessFilter.Preset = .all
@@ -37,6 +44,8 @@ struct ContentView: View {
                     .tag(Surface.summary)
                 Label(Surface.processes.title, systemImage: "list.bullet")
                     .tag(Surface.processes)
+                Label(Surface.ports.title, systemImage: "network")
+                    .tag(Surface.ports)
                 Section("Performance") {
                     ForEach(Surface.performance(hasGPU: vitalsModel.vitals?.gpu != nil,
                                                 hasThermal: vitalsModel.thermal != nil,
@@ -69,6 +78,11 @@ struct ContentView: View {
                               savedSearches: $savedSearches,
                               pendingTermination: $pendingTermination,
                               errorMessage: $errorMessage)
+            case .ports:
+                PortsView(model: portsModel,
+                          searchText: $portsSearchText,
+                          filter: $portsFilter,
+                          sortOrder: $portsSortOrder)
             case .cpu:
                 CPUPanel(model: vitalsModel)
             case .gpu:
@@ -165,7 +179,7 @@ struct ContentView: View {
         case .disk:    return vitals.diskText
         case .thermal: return ThermalReading.text(vitalsModel.thermal?.headline)
         case .battery: return vitals.battery?.displayText ?? "—"
-        case .summary, .processes: return ""
+        case .summary, .processes, .ports: return ""
         }
     }
 
@@ -196,7 +210,7 @@ struct ContentView: View {
             return ThermalPanel.meterFraction(vitalsModel.thermal?.headline)
         case .battery:
             return Double(vitals.battery?.chargePercent ?? 0) / 100
-        case .summary, .processes:
+        case .summary, .processes, .ports:
             return 0
         }
     }

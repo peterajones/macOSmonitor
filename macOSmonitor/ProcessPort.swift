@@ -1,7 +1,7 @@
 import Darwin
 
 /// One open network socket held by a process.
-struct ProcessPort: Equatable, Sendable {
+struct ProcessPort: Hashable, Sendable {
     let protocolName: String    // "TCP" / "UDP"
     let localAddress: String    // "127.0.0.1", "::1", or "*" for a wildcard bind
     let localPort: UInt16

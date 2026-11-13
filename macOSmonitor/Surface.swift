@@ -7,7 +7,7 @@ import Foundation
 
 /// The top-level surfaces listed in the sidebar.
 enum Surface: String, CaseIterable, Hashable, Identifiable {
-    case summary, processes, cpu, gpu, memory, network, disk, thermal, battery
+    case summary, processes, ports, cpu, gpu, memory, network, disk, thermal, battery
 
     var id: String { rawValue }
 
@@ -15,6 +15,7 @@ enum Surface: String, CaseIterable, Hashable, Identifiable {
         switch self {
         case .summary:   return "Summary"
         case .processes: return "Processes"
+        case .ports:     return "Ports"
         case .cpu:       return "CPU"
         case .gpu:       return "GPU"
         case .memory:    return "Memory"
@@ -25,7 +26,7 @@ enum Surface: String, CaseIterable, Hashable, Identifiable {
         }
     }
 
-    /// The metric this surface displays, if any. `.processes` shows a table, not a metric.
+    /// The metric this surface displays, if any. `.processes` and `.ports` show tables, not metrics.
     var metric: Metric? {
         switch self {
         case .cpu:       return .cpu
@@ -35,7 +36,7 @@ enum Surface: String, CaseIterable, Hashable, Identifiable {
         case .disk:      return .disk
         case .thermal:   return .thermal
         case .battery:   return .battery
-        case .summary, .processes: return nil
+        case .summary, .processes, .ports: return nil
         }
     }
 
