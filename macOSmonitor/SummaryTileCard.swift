@@ -45,7 +45,8 @@ struct SummaryTileCard: View {
             MeterBar(fraction: tile.fraction,
                      orientation: .horizontal,
                      onColor: color,
-                     offColor: theme.meterOff)
+                     offColor: color.opacity(0.15),
+                     glows: true)
                 .frame(height: 8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

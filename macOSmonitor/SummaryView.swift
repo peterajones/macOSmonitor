@@ -39,40 +39,38 @@ struct SummaryView: View {
         }
     }
 
-    /// CPU and Memory only: they are the two metrics with a genuine 0-100% ceiling.
-    /// Disk and Network rates have no natural maximum, so a "percent full" meter for
-    /// them would be a fraction of a recent autoscaled peak — it would look like a
-    /// utilisation reading without being one.
+    /// Only meters with a real scale: CPU and GPU are percentages, and Temp and Power use
+    /// their panels' scales. Disk and Network rates have no natural maximum, so they get
+    /// tiles with a labelled peak instead. Memory has its meter beside its graph.
     private var meterStrip: some View {
-        HStack(alignment: .bottom, spacing: 10) {
-            verticalMeter(title: "CPU", metric: .cpu, fraction: cpuFraction)
-            verticalMeter(title: "MEM", metric: .memory, fraction: memoryFraction)
+        let meters = SummaryMeter.all(vitals: vitalsModel.vitals, thermal: vitalsModel.thermal,
+                                      power: vitalsModel.power, powerHistory: vitalsModel.powerHistory)
+        return HStack(alignment: .bottom, spacing: 6) {
+            ForEach(meters, id: \.label) { verticalMeter($0) }
         }
-        .frame(width: 76)
         .frame(maxHeight: .infinity)
         .dashboardCard(theme.secondaryText)
     }
 
-    private func verticalMeter(title: String, metric: Metric, fraction: Double) -> some View {
-        VStack(spacing: 6) {
-            MeterBar(fraction: fraction,
+    private func verticalMeter(_ meter: SummaryMeter) -> some View {
+        let color = theme.color(for: meter.metric)
+        return VStack(spacing: 6) {
+            Text(meter.label)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(color)
+            MeterBar(fraction: meter.fraction,
                      orientation: .vertical,
-                     onColor: theme.color(for: metric),
-                     offColor: theme.meterOff)
+                     onColor: color,
+                     offColor: color.opacity(0.15),
+                     glows: true)
                 .frame(width: 14)
-            Text(title)
+            Text(meter.value)
                 .font(.caption2)
-                .foregroundStyle(theme.secondaryText)
+                .monospacedDigit()
+                .foregroundStyle(color)
+                .fixedSize()
         }
-    }
-
-    private var cpuFraction: Double {
-        (vitalsModel.vitals?.cpuUsagePercent ?? 0) / 100
-    }
-
-    private var memoryFraction: Double {
-        guard let vitals = vitalsModel.vitals, vitals.totalMemoryBytes > 0 else { return 0 }
-        return Double(vitals.usedMemoryBytes) / Double(vitals.totalMemoryBytes)
+        .frame(minWidth: 32)
     }
 
     private var statRow: some View {
