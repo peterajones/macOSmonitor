@@ -37,6 +37,10 @@ struct macOSmonitorApp: App {
             HelperCommands()
         }
 
+        Settings {
+            SettingsView()
+        }
+
         Window("Privileged Helper", id: Self.helperWindowID) {
             PrivilegedHelperView()
         }

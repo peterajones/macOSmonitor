@@ -40,9 +40,14 @@ struct ContentView: View {
 
     private var theme: Theme { Theme.named(themeID) }
 
-    /// The bottom of the sidebar: the Colours popover (theme, saturation, bloom).
+    /// The bottom of the sidebar: Settings (the ⌘, window) and the Colours popover (theme,
+    /// saturation, bloom).
     private var sidebarFooter: some View {
-        HStack {
+        HStack(spacing: 10) {
+            SettingsLink {
+                Label("Settings", systemImage: "gearshape")
+            }
+            .buttonStyle(.borderless)
             Button { showsColours.toggle() } label: {
                 Label("Colours", systemImage: "paintpalette")
             }
@@ -50,9 +55,13 @@ struct ContentView: View {
             .popover(isPresented: $showsColours, arrowEdge: .top) {
                 ColoursPopover(themeID: $themeID, bloomLevel: $bloomLevel, saturationLevel: $saturationLevel)
             }
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 14)
+        // One line each: at the sidebar's narrowest the two labels only just fit.
+        .lineLimit(1)
+        .fixedSize(horizontal: false, vertical: true)
+        .font(.callout)
+        .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .overlay(alignment: .top) { Divider() }
     }

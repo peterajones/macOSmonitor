@@ -41,4 +41,13 @@ struct MenuShortcutTests {
         #expect(byTitle["Quit Process"] == Shortcut(key: "q", modifiers: NSEvent.ModifierFlags([.command, .option]).rawValue))
         #expect(byTitle["Force Quit Process"] == Shortcut(key: "q", modifiers: NSEvent.ModifierFlags([.command, .option, .shift]).rawValue))
     }
+
+    /// The Settings window exists (a SwiftUI `Settings` scene adds this item) and opens with
+    /// the Mac's standard shortcut.
+    @Test func appMenuHasSettingsOnCommandComma() async throws {
+        let shortcuts = try await menuShortcuts()
+        let settings = shortcuts.first { $0.title.hasPrefix("Settings") }
+        #expect(settings?.shortcut == Shortcut(key: ",", modifiers: NSEvent.ModifierFlags.command.rawValue),
+                "menu shortcuts: \(shortcuts.map(\.title))")
+    }
 }
