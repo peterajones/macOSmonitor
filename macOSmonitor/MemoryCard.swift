@@ -39,7 +39,7 @@ struct MemoryCard: View {
                         fillColor: theme.fillColor(for: .memory),
                         gridColor: theme.gridLine,
                         timeAxis: CompressedTimeAxis(history: model.history.memoryUsed, lastSample: model.lastSampleDate))
-                .frame(minHeight: 90)
+                .frame(minHeight: 90, maxHeight: .infinity)
                 .overlay(alignment: .topLeading) { rangeLabel(graphRange.upperBound) }
                 .overlay(alignment: .bottomLeading) { rangeLabel(graphRange.lowerBound) }
             }
@@ -55,7 +55,7 @@ struct MemoryCard: View {
             .monospacedDigit()
             .foregroundStyle(theme.secondaryText)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .dashboardCard(theme.color(for: .memory))
     }
 

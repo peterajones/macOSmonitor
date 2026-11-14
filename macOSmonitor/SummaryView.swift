@@ -12,9 +12,12 @@ struct SummaryView: View {
 
     var body: some View {
         VStack(spacing: 12) {
+            // The top row and the Memory card share the height; the tiles keep theirs.
             topRow
+                .frame(minHeight: 200, maxHeight: .infinity)
             Button { surface = .memory } label: {
                 MemoryCard(model: vitalsModel)
+                    .frame(maxHeight: .infinity)
             }
             .buttonStyle(.plain)
             statRow
@@ -29,11 +32,14 @@ struct SummaryView: View {
             meterStrip
             Button { surface = .cpu } label: {
                 CPUOverviewCard(model: vitalsModel)
+                    .frame(minWidth: 220)
             }
             .buttonStyle(.plain)
             Button { surface = .processes } label: {
                 TopProcessesCard(model: model)
-                    .frame(width: 280)
+                    // Shares the width with the CPU card: 320 when there's room, down to 220,
+                    // where the table drops its Memory column.
+                    .frame(minWidth: 220, maxWidth: 320)
             }
             .buttonStyle(.plain)
         }
