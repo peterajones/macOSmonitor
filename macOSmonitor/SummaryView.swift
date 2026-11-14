@@ -12,9 +12,10 @@ struct SummaryView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            // The top row and the Memory card share the height; the tiles keep theirs.
+            // The top row and the Memory card share the height; the tiles keep theirs. The
+            // minimums are what fits the minimum window above the status bar.
             topRow
-                .frame(minHeight: 200, maxHeight: .infinity)
+                .frame(minHeight: 170, maxHeight: .infinity)
             Button { surface = .memory } label: {
                 MemoryCard(model: vitalsModel)
                     .frame(maxHeight: .infinity)

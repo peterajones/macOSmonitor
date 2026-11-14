@@ -63,43 +63,50 @@ struct ContentView: View {
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 260)
         } detail: {
-            switch surface ?? .summary {
-            case .summary:
-                SummaryView(model: model, vitalsModel: vitalsModel, surface: $surface)
-            case .processes:
-                ProcessesView(model: model,
-                              vitalsModel: vitalsModel,
-                              sections: sections,
-                              sortOrder: $sortOrder,
-                              showInspector: $showInspector,
-                              searchText: $searchText,
-                              searchPresented: $searchPresented,
-                              filterPreset: $filterPreset,
-                              hidesSystemProcesses: $hidesSystemProcesses,
-                              savedSearches: $savedSearches,
-                              pendingTermination: $pendingTermination,
-                              errorMessage: $errorMessage)
-            case .ports:
-                PortsView(model: portsModel,
-                          searchText: $portsSearchText,
-                          filter: $portsFilter,
-                          sortOrder: $portsSortOrder)
-            case .cpu:
-                CPUPanel(model: vitalsModel)
-            case .gpu:
-                GPUPanel(model: vitalsModel)
-            case .memory:
-                MemoryPanel(model: vitalsModel)
-            case .network:
-                NetworkPanel(model: vitalsModel)
-            case .disk:
-                DiskPanel(model: vitalsModel)
-            case .thermal:
-                ThermalPanel(model: vitalsModel)
-            case .energy:
-                EnergyPanel(model: vitalsModel, processes: model)
-            case .battery:
-                BatteryPanel(model: batteryModel)
+            Group {
+                switch surface ?? .summary {
+                case .summary:
+                    SummaryView(model: model, vitalsModel: vitalsModel, surface: $surface)
+                case .processes:
+                    ProcessesView(model: model,
+                                  vitalsModel: vitalsModel,
+                                  sections: sections,
+                                  sortOrder: $sortOrder,
+                                  showInspector: $showInspector,
+                                  searchText: $searchText,
+                                  searchPresented: $searchPresented,
+                                  filterPreset: $filterPreset,
+                                  hidesSystemProcesses: $hidesSystemProcesses,
+                                  savedSearches: $savedSearches,
+                                  pendingTermination: $pendingTermination,
+                                  errorMessage: $errorMessage)
+                case .ports:
+                    PortsView(model: portsModel,
+                              searchText: $portsSearchText,
+                              filter: $portsFilter,
+                              sortOrder: $portsSortOrder)
+                case .cpu:
+                    CPUPanel(model: vitalsModel)
+                case .gpu:
+                    GPUPanel(model: vitalsModel)
+                case .memory:
+                    MemoryPanel(model: vitalsModel)
+                case .network:
+                    NetworkPanel(model: vitalsModel)
+                case .disk:
+                    DiskPanel(model: vitalsModel)
+                case .thermal:
+                    ThermalPanel(model: vitalsModel)
+                case .energy:
+                    EnergyPanel(model: vitalsModel, processes: model)
+                case .battery:
+                    BatteryPanel(model: batteryModel)
+                }
+            }
+            // Outside the switch, so it isn't rebuilt (and its loop restarted) on every
+            // surface change.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                StatusBarView(processCount: model.rows.count, uptime: vitalsModel.vitals?.uptimeText)
             }
         }
         .frame(minWidth: 900, minHeight: 500)

@@ -39,7 +39,7 @@ struct MemoryCard: View {
                         fillColor: theme.fillColor(for: .memory),
                         gridColor: theme.gridLine,
                         timeAxis: CompressedTimeAxis(history: model.history.memoryUsed, lastSample: model.lastSampleDate))
-                .frame(minHeight: 90, maxHeight: .infinity)
+                .frame(minHeight: 60, maxHeight: .infinity)
                 .overlay(alignment: .topLeading) { rangeLabel(graphRange.upperBound) }
                 .overlay(alignment: .bottomLeading) { rangeLabel(graphRange.lowerBound) }
             }

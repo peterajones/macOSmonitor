@@ -73,7 +73,7 @@ struct CPUOverviewCard: View {
                          color: temperatureColor)
                 }
             }
-            .frame(minHeight: 100, maxHeight: .infinity)
+            .frame(minHeight: 80, maxHeight: .infinity)
 
             Text(Self.footer(coreCount: model.vitals?.coreCount ?? 0,
                              cpuText: model.vitals?.cpuText ?? "—",
