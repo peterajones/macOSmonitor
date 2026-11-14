@@ -21,6 +21,9 @@ final class VitalsModel {
     private(set) var thermal: ThermalReading?
     /// Hottest CPU die temperature, one sample per thermal tick: 150 × 2 s = 5 minutes.
     private(set) var thermalHistory = MetricHistory(capacity: VitalsModel.thermalHistoryCapacity)
+    /// The latest CPU temperature on every vitals tick (60 s), so it can share the CPU graph's
+    /// time axis; the sensors are read every 2 s, so each reading repeats until the next.
+    private(set) var cpuTemperatureHistory = MetricHistory(capacity: 60)
     /// When the latest temperature joined the history, so the thermal graph glides on its
     /// own 2 s tick.
     private(set) var lastThermalSampleDate: Date?
@@ -61,6 +64,7 @@ final class VitalsModel {
         let sample = await sampler.sample()
         vitals = sample
         history.append(sample)
+        if let celsius = thermal?.headline { cpuTemperatureHistory.append(celsius) }
         lastSampleDate = now()
     }
 

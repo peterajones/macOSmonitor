@@ -5,6 +5,8 @@ import Foundation
 /// No clock, no syscalls, no SwiftUI.
 struct VitalsHistory: Equatable, Sendable {
     var cpu: MetricHistory
+    /// The kernel's share of CPU time, alongside `cpu`.
+    var cpuSystem: MetricHistory
     var memoryUsed: MetricHistory
     var networkIn: MetricHistory
     var networkOut: MetricHistory
@@ -23,6 +25,7 @@ struct VitalsHistory: Equatable, Sendable {
     init(capacity: Int = 60) {
         self.capacity = capacity
         cpu = MetricHistory(capacity: capacity)
+        cpuSystem = MetricHistory(capacity: capacity)
         memoryUsed = MetricHistory(capacity: capacity)
         networkIn = MetricHistory(capacity: capacity)
         networkOut = MetricHistory(capacity: capacity)
@@ -35,6 +38,7 @@ struct VitalsHistory: Equatable, Sendable {
     /// Fans one snapshot into every series, keeping them index-aligned by construction.
     mutating func append(_ vitals: SystemVitals) {
         cpu.append(vitals.cpuUsagePercent)
+        cpuSystem.append(vitals.cpuSystemPercent)
         memoryUsed.append(Double(vitals.usedMemoryBytes))
         memoryUsedLong.append(Double(vitals.usedMemoryBytes))
         networkIn.append(vitals.networkInBytesPerSec)

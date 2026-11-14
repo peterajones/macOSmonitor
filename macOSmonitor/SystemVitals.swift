@@ -26,6 +26,8 @@ struct SystemVitals: Equatable, Sendable {
     var gpu: GPUInfo? = nil
     /// Per-core clock keyed by core label ("E1", "P3"); empty when unavailable.
     var coreFrequencies: [String: CoreFrequency] = [:]
+    /// The kernel's share of all CPU time, 0–100 (part of `cpuUsagePercent`).
+    var cpuSystemPercent: Double = 0
 
     var gpuText: String { gpu?.utilizationText ?? "—" }
 
@@ -147,6 +149,8 @@ enum MemoryPressure: String, Sendable {
 struct CoreTicks: Equatable, Sendable {
     let busy: UInt64
     let total: UInt64
+    /// The kernel's share of `busy` (the "system" ticks).
+    var system: UInt64 = 0
 }
 
 /// Raw host CPU/memory reads, isolated behind a protocol so the sampler can be tested with a fake.
@@ -178,7 +182,7 @@ struct HostStats: HostStatsProviding {
             for i in 0..<Int(cpuCount) {
                 let t = ptr[i].cpu_ticks          // (user, system, idle, nice)
                 let active = UInt64(t.0) + UInt64(t.1) + UInt64(t.3)
-                cores.append(CoreTicks(busy: active, total: active + UInt64(t.2)))
+                cores.append(CoreTicks(busy: active, total: active + UInt64(t.2), system: UInt64(t.1)))
             }
         }
         return cores

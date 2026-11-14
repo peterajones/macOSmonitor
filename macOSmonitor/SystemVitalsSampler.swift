@@ -41,6 +41,7 @@ actor SystemVitalsSampler: SystemVitalsSampling {
 
     func sample() -> SystemVitals {
         var cpuPercent = 0.0
+        var cpuSystemPercent = 0.0
         var perCore: [Double] = []
         if let cores = host.cpuTicks() {
             // Require both counters to be monotonic per core before subtracting: 32-bit
@@ -50,6 +51,7 @@ actor SystemVitalsSampler: SystemVitalsSampling {
             if let previous = previousCores, previous.count == cores.count {
                 var totalBusy: UInt64 = 0
                 var totalAll: UInt64 = 0
+                var totalSystem: UInt64 = 0
                 for (current, prior) in zip(cores, previous) {
                     guard current.total > prior.total, current.busy >= prior.busy else {
                         perCore.append(0)
@@ -60,8 +62,13 @@ actor SystemVitalsSampler: SystemVitalsSampling {
                     perCore.append(100.0 * Double(deltaBusy) / Double(deltaTotal))
                     totalBusy += deltaBusy
                     totalAll += deltaTotal
+                    // A wrapped system counter counts as no kernel time rather than trapping.
+                    totalSystem += current.system >= prior.system ? current.system - prior.system : 0
                 }
-                if totalAll > 0 { cpuPercent = 100.0 * Double(totalBusy) / Double(totalAll) }
+                if totalAll > 0 {
+                    cpuPercent = 100.0 * Double(totalBusy) / Double(totalAll)
+                    cpuSystemPercent = 100.0 * Double(totalSystem) / Double(totalAll)
+                }
             } else {
                 // First tick, or the core count changed: no baseline to subtract from.
                 perCore = Array(repeating: 0, count: cores.count)
@@ -151,7 +158,8 @@ actor SystemVitalsSampler: SystemVitalsSampling {
             swap: host.swapUsage(),
             memoryPressure: host.memoryPressureLevel().flatMap(MemoryPressure.init(kernelLevel:)),
             gpu: gpu.read(),
-            coreFrequencies: frequencies.read() ?? [:]
+            coreFrequencies: frequencies.read() ?? [:],
+            cpuSystemPercent: cpuSystemPercent
         )
     }
 
