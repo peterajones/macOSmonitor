@@ -51,12 +51,31 @@ small `Sendable` protocol (`HostStatsProviding`, `NetworkStatsProviding`, `Batte
 `ProcessSignal`) with a real struct and a test fake. This is what makes the samplers and models
 testable — keep it when adding a data source.
 
-**Private APIs are allowed (decided 2026-11-12), with fallbacks.** The app is for Peter's own
-use for now (not shipped; he has a developer account, so Developer ID + notarization stay
-open). Temperature, clock speed, NPU and power draw need IOReport / SMC / private HID sensors.
+**Private APIs are allowed (decided 2026-11-12), with fallbacks, in the Full edition only.**
+The App Store edition compiles them out (see "Distribution" below). Temperature, clock speed
+and power draw need IOReport / SMC / private HID sensors.
 Each private read goes behind its own provider protocol and must return nil — hiding its
 panel — when the interface is missing or changes shape, never crash. Re-run the
 real-hardware tests after each macOS update.
+
+**Distribution: one codebase, two editions (decided 2026-11-13).** Peter wants a Mac App Store
+presence (cheap or free, to reinforce him as a developer; he already has an iOS app there).
+- **App Store edition:** sandboxed, public APIs only. Private-API readers are **compiled out**, not
+  just disabled, so App Review's scan finds nothing; panels hide because their providers return nil.
+- **Full edition:** today's app (unsandboxed, private APIs, root helper), for Peter, and possibly
+  Developer ID from his own site later.
+- What the App Sandbox allows, probed 2026-11-13 with sandboxed test binaries on macOS 27.2:
+  - **Works:** listing processes via `sysctl(KERN_PROC_ALL)` (`proc_listpids` and `proc_listallpids`
+    return **0** in the sandbox); task info, names, paths, owners and arguments for the user's own
+    processes; host CPU/per-core/memory; `getifaddrs`; IOPowerSources; IOAccelerator GPU %;
+    IOBlockStorageDriver disk stats; device-tree reads.
+  - **Blocked:** `kill()` on anything else (EPERM), and even `NSRunningApplication.terminate()` /
+    `forceTerminate()` on other apps (both return false); `proc_pid_rusage` and fd lists of other
+    processes (no Ports, open files, disk/energy per process); AppleSMC (`0xe00002e2`); IOReport.
+  - **Loads but private (App Review rejects):** the HID thermal client, NetworkStatistics.
+  - The root helper is out: App Store apps can't install daemons or escalate.
+- So the App Store edition is a **monitor**, not a manager: no Quit/Force Quit, Ports, Energy,
+  clock speeds or temperatures (thermal state only), no helper. Ship it after the design round.
 
 **The privileged helper (`macOSmonitorHelper` target, added 2026-11-13)** is a root launchd daemon
 registered with `SMAppService.daemon` (macOSmonitor ▸ Privileged Helper…; the user approves it under
