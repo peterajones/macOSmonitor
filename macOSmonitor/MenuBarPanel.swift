@@ -21,6 +21,10 @@ struct MenuBarPanel: View {
     @State private var processModel = ProcessListModel()
     @Environment(\.openWindow) private var openWindow
     @Environment(\.theme) private var theme
+    // The Colours popover's settings, read here too: the panel is its own scene, so the
+    // main window's environment doesn't reach it.
+    @AppStorage(Bloom.storageKey) private var bloomLevel = Bloom.defaultLevel
+    @AppStorage(SaturationLevel.storageKey) private var saturationLevel = SaturationLevel.defaultLevel
 
     static let topProcessCount = 5
 
@@ -32,8 +36,12 @@ struct MenuBarPanel: View {
                         Text(row.title).foregroundStyle(.secondary)
                         if let fraction = row.fraction {
                             MeterBar(fraction: fraction, orientation: .horizontal,
-                                     onColor: theme.color(for: row.metric), offColor: theme.meterOff)
+                                     onColor: theme.color(for: row.metric),
+                                     offColor: theme.color(for: row.metric).opacity(0.15),
+                                     glows: true)
                                 .frame(width: 100, height: 8)
+                                .saturation(SaturationLevel.amount(saturationLevel))
+                                .environment(\.bloom, Bloom(level: bloomLevel))
                         } else {
                             Color.clear.frame(width: 100, height: 8)
                         }

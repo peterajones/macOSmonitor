@@ -14,6 +14,7 @@ struct MeterBar: View {
     let offColor: Color
     /// A soft halo around the lit segments, for the Summary's meters.
     var glows = false
+    @Environment(\.bloom) private var bloom
 
     /// 20 segments of 5% each.
     nonisolated static let segmentCount = 20
@@ -65,11 +66,11 @@ struct MeterBar: View {
         Canvas { context, size in
             let lit = MeterBar.litSegments(fraction: fraction)
             let rects = MeterBar.segmentRects(in: size, orientation: orientation)
-            if glows, lit > 0 {
+            if glows, lit > 0, !bloom.isOff {
                 context.drawLayer { halo in
-                    halo.addFilter(.blur(radius: 2.5))
+                    halo.addFilter(.blur(radius: bloom.meterRadius))
                     for rect in rects.prefix(lit) {
-                        halo.fill(Path(rect), with: .color(onColor.opacity(0.9)))
+                        halo.fill(Path(rect), with: .color(onColor.opacity(bloom.meterOpacity)))
                     }
                 }
             }

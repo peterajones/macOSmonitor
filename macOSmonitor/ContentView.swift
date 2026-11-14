@@ -15,6 +15,9 @@ struct ContentView: View {
     @State private var portsModel = PortsModel(sampler: PortsSampler(privileged: PrivilegedHelperClient.shared))
     @State private var surface: Surface? = .summary
     @AppStorage("themeID") private var themeID: String = Theme.system.id
+    @AppStorage(Bloom.storageKey) private var bloomLevel = Bloom.defaultLevel
+    @AppStorage(SaturationLevel.storageKey) private var saturationLevel = SaturationLevel.defaultLevel
+    @State private var showsColours = false
 
     // Owned here, not in ProcessesView: that view lives in one branch of the detail
     // `switch` below, so it is destroyed and recreated on every surface change and
@@ -37,6 +40,23 @@ struct ContentView: View {
 
     private var theme: Theme { Theme.named(themeID) }
 
+    /// The bottom of the sidebar: the Colours popover (theme, saturation, bloom).
+    private var sidebarFooter: some View {
+        HStack {
+            Button { showsColours.toggle() } label: {
+                Label("Colours", systemImage: "paintpalette")
+            }
+            .buttonStyle(.borderless)
+            .popover(isPresented: $showsColours, arrowEdge: .top) {
+                ColoursPopover(themeID: $themeID, bloomLevel: $bloomLevel, saturationLevel: $saturationLevel)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .overlay(alignment: .top) { Divider() }
+    }
+
     var body: some View {
         NavigationSplitView {
             List(selection: $surface) {
@@ -56,11 +76,13 @@ struct ContentView: View {
                                          value: meterValue(item),
                                          fraction: meterFraction(item),
                                          metric: metric)
+                                .saturation(SaturationLevel.amount(saturationLevel))
                                 .tag(item)
                         }
                     }
                 }
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) { sidebarFooter }
             .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 260)
         } detail: {
             Group {
@@ -103,6 +125,7 @@ struct ContentView: View {
                     BatteryPanel(model: batteryModel)
                 }
             }
+            .saturation(SaturationLevel.amount(saturationLevel))
             // Outside the switch, so it isn't rebuilt (and its loop restarted) on every
             // surface change.
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -112,6 +135,7 @@ struct ContentView: View {
         .frame(minWidth: 900, minHeight: 500)
         .navigationTitle("macOSmonitor")
         .environment(\.theme, theme)
+        .environment(\.bloom, Bloom(level: bloomLevel))
         // One customizable toolbar for the whole window (right-click → Customize Toolbar…),
         // declared here so it survives surface changes. Item IDs are what macOS stores the
         // user's arrangement under: don't rename them. The process buttons stay visible but
@@ -130,18 +154,6 @@ struct ContentView: View {
                     Label("Toggle Inspector", systemImage: "sidebar.trailing")
                 }
                 .disabled(surface != .processes)
-            }
-            ToolbarItem(id: "theme") {
-                Menu {
-                    Picker("Theme", selection: $themeID) {
-                        ForEach(Theme.all) { option in
-                            Text(option.name).tag(option.id)
-                        }
-                    }
-                    .pickerStyle(.inline)
-                } label: {
-                    Label("Theme", systemImage: "paintpalette")
-                }
             }
         }
         // The window's loops live here, on the always-alive split view: the process loop

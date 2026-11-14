@@ -28,9 +28,12 @@ struct WindowToolbarTests {
         #expect(toolbar.allowsUserCustomization, "toolbar items: \(identifiers)")
         // Present on the launch surface (Summary), not only on Processes: a toolbar that
         // changes with the surface is rebuilt and forgets the user's customization.
-        for id in ["quit", "forceQuit", "inspector", "theme"] {
+        for id in ["quit", "forceQuit", "inspector"] {
             #expect(identifiers.contains { $0 == id || $0.hasSuffix(".\(id)") },
                     "no toolbar item \(id) in \(identifiers)")
         }
+        // The theme moved to the sidebar's Colours popover (2026-11-14).
+        #expect(!identifiers.contains { $0 == "theme" || $0.hasSuffix(".theme") },
+                "the theme menu is back in the toolbar: \(identifiers)")
     }
 }

@@ -37,6 +37,7 @@ struct MetricGraph: View {
     var onFrame: (() -> Void)? = nil
 
     @Environment(\.graphFrameRate) private var frameRate
+    @Environment(\.bloom) private var bloom
 
     private let gridDivisions = 4
 
@@ -90,9 +91,11 @@ struct MetricGraph: View {
             area.closeSubpath()
             context.fill(area, with: .color(fillColor))
 
-            context.drawLayer { glow in
-                glow.addFilter(.blur(radius: 3))
-                glow.stroke(trace, with: .color(lineColor.opacity(0.6)), lineWidth: 3)
+            if !bloom.isOff {
+                context.drawLayer { glow in
+                    glow.addFilter(.blur(radius: bloom.graphRadius))
+                    glow.stroke(trace, with: .color(lineColor.opacity(bloom.graphOpacity)), lineWidth: 3)
+                }
             }
             // Full strength at the top of the range, dimmer towards the bottom, in the
             // metric's own colour so every theme (and the monochrome VFDs) keeps its look.
