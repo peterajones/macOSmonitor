@@ -30,8 +30,7 @@ struct CPUOverviewCard: View {
                 .font(.caption2)
                 .foregroundStyle(theme.secondaryText)
         }
-        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(theme.panelBackground)
+        .dashboardCard(theme.color(for: .cpu))
     }
 }

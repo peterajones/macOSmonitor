@@ -26,8 +26,7 @@ struct MemoryCard: View {
                         timeAxis: CompressedTimeAxis(history: model.history.memoryUsed, lastSample: model.lastSampleDate))
                 .frame(minHeight: 90)
         }
-        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(theme.panelBackground)
+        .dashboardCard(theme.color(for: .memory))
     }
 }

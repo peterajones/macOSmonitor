@@ -44,8 +44,7 @@ struct TopProcessesCard: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(theme.panelBackground)
+        .dashboardCard(theme.secondaryText)
     }
 }

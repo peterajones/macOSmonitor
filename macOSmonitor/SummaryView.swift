@@ -49,6 +49,8 @@ struct SummaryView: View {
             verticalMeter(title: "MEM", metric: .memory, fraction: memoryFraction)
         }
         .frame(width: 76)
+        .frame(maxHeight: .infinity)
+        .dashboardCard(theme.secondaryText)
     }
 
     private func verticalMeter(title: String, metric: Metric, fraction: Double) -> some View {
@@ -75,28 +77,43 @@ struct SummaryView: View {
 
     private var statRow: some View {
         HStack(spacing: 12) {
-            Button { surface = .disk } label: {
-                StatCard(title: "Disk",
-                         value: vitalsModel.vitals?.diskText ?? "—",
-                         metric: .disk)
+            Button { surface = .network } label: {
+                SummaryTileCard(title: "Network", systemImage: "network", metric: .network,
+                                tile: .network(vitalsModel.vitals,
+                                               inHistory: vitalsModel.history.networkIn,
+                                               outHistory: vitalsModel.history.networkOut))
             }
             .buttonStyle(.plain)
-            Button { surface = .network } label: {
-                StatCard(title: "Network",
-                         value: vitalsModel.vitals?.networkText ?? "—",
-                         metric: .network)
+            Button { surface = .disk } label: {
+                SummaryTileCard(title: "Disk", systemImage: "internaldrive", metric: .disk,
+                                tile: .disk(vitalsModel.vitals,
+                                            readHistory: vitalsModel.history.diskRead,
+                                            writeHistory: vitalsModel.history.diskWrite))
             }
             .buttonStyle(.plain)
             // Omitted entirely when there is no battery (M9's rule), so a desktop
-            // Mac shows three cards rather than a gap.
+            // Mac shows three tiles rather than a gap.
             if let battery = vitalsModel.vitals?.battery {
-                StatCard(title: "Battery",
-                         value: battery.displayText,
-                         metric: .battery)
+                Button { surface = .battery } label: {
+                    SummaryTileCard(title: "Battery", systemImage: "battery.75percent", metric: .battery,
+                                    tile: .battery(battery))
+                }
+                .buttonStyle(.plain)
             }
-            StatCard(title: "Thermal",
-                     value: vitalsModel.vitals?.thermalState ?? "—",
-                     metric: .thermal)
+            thermalTile
+        }
+        .fixedSize(horizontal: false, vertical: true)   // every tile as tall as the tallest
+    }
+
+    /// Opens the Thermal panel only when it exists (it needs readable temperature sensors).
+    @ViewBuilder private var thermalTile: some View {
+        let card = SummaryTileCard(title: "Thermal", systemImage: "thermometer.medium", metric: .thermal,
+                                   tile: .thermal(vitalsModel.vitals, cpuCelsius: vitalsModel.thermal?.cpuDieMax))
+        if vitalsModel.thermal != nil {
+            Button { surface = .thermal } label: { card }
+                .buttonStyle(.plain)
+        } else {
+            card
         }
     }
 }

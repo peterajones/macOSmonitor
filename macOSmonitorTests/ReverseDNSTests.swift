@@ -90,7 +90,13 @@ struct PortsModelHostNameTests {
         let sampler = CountingSampler()
         let model = PortsModel(sampler: sampler, dns: ReverseDNS(lookup: HangingLookup()), interval: .milliseconds(10))
         let task = Task { await model.run() }
-        try await Task.sleep(for: .milliseconds(300))
+        // Wait for 5 samples rather than counting what a fixed window held: under a loaded
+        // test run 300 ms sometimes fitted only 4. The deadline stays well inside the 5 s
+        // hang, so a loop that waited on the lookup still fails, with 1 sample.
+        let deadline = ContinuousClock.now + .seconds(2)
+        while sampler.calls < 5, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         task.cancel()
         await task.value
         #expect(sampler.calls >= 5, "sampled \(sampler.calls) times while a lookup hung")
