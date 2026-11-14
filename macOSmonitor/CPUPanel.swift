@@ -27,7 +27,8 @@ struct CPUPanel: View {
                             },
                          lineColor: theme.graphLine,
                          fillColor: theme.graphFill,
-                         backgroundColor: theme.meterOff)
+                         backgroundColor: theme.meterOff,
+                         lastSample: model.lastSampleDate)
                 Text("Last 60s per core")
                     .font(.caption2)
                     .foregroundStyle(theme.secondaryText)
@@ -36,7 +37,8 @@ struct CPUPanel: View {
                             range: MetricScale.fixed(100),
                             lineColor: theme.graphLine,
                             fillColor: theme.graphFill,
-                            gridColor: theme.gridLine)
+                            gridColor: theme.gridLine,
+                            timeAxis: CompressedTimeAxis(history: model.history.cpu, lastSample: model.lastSampleDate))
                     .frame(minHeight: 180)
                 HStack {
                     Text("60s ago")

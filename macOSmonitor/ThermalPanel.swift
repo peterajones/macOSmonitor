@@ -30,7 +30,8 @@ struct ThermalPanel: View {
                         range: MetricScale.fixed(Self.scaleMax),
                         lineColor: theme.graphLine,
                         fillColor: theme.graphFill,
-                        gridColor: theme.gridLine)
+                        gridColor: theme.gridLine,
+                        timeAxis: CompressedTimeAxis(history: model.thermalHistory, lastSample: model.lastThermalSampleDate, sampleInterval: 2, gridInterval: 15))
                 .frame(minHeight: 180)
 
             HStack {

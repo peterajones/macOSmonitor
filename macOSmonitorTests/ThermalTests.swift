@@ -116,4 +116,25 @@ struct ThermalModelTests {
         #expect(model.thermal?.cpuDieMax == 52)
         #expect(model.thermalHistory.capacity == 150)       // 5 minutes at 2 s
     }
+
+    /// The thermal graph glides from its own last sample: it ticks every 2 s, not with the
+    /// 1 Hz vitals. A tick without a reading appends nothing, so it doesn't restart the glide.
+    private final class DateClock: @unchecked Sendable { var date = Date(timeIntervalSince1970: 0) }
+
+    @Test func thermalGlideClockMovesOnlyWhenASampleIsAdded() async {
+        let sampler = FakeThermalSampler()
+        let clock = DateClock()
+        let model = VitalsModel(sampler: FakeVitalsSampler(), thermalSampler: sampler, now: { clock.date })
+        #expect(model.lastThermalSampleDate == nil)
+
+        clock.date = Date(timeIntervalSince1970: 100)
+        sampler.next = ThermalReading(cpuDieMax: 47, cpuDieAverage: 44, boardMax: nil, ssd: nil, battery: nil)
+        await model.refreshThermalOnce()
+        #expect(model.lastThermalSampleDate == Date(timeIntervalSince1970: 100))
+
+        clock.date = Date(timeIntervalSince1970: 102)
+        sampler.next = nil
+        await model.refreshThermalOnce()
+        #expect(model.lastThermalSampleDate == Date(timeIntervalSince1970: 100))
+    }
 }

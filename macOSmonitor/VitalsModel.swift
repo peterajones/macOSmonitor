@@ -21,6 +21,9 @@ final class VitalsModel {
     private(set) var thermal: ThermalReading?
     /// Hottest CPU die temperature, one sample per thermal tick: 150 × 2 s = 5 minutes.
     private(set) var thermalHistory = MetricHistory(capacity: VitalsModel.thermalHistoryCapacity)
+    /// When the latest temperature joined the history, so the thermal graph glides on its
+    /// own 2 s tick.
+    private(set) var lastThermalSampleDate: Date?
 
     static let thermalInterval: Duration = .seconds(2)
     static let thermalHistoryCapacity = 150
@@ -50,6 +53,9 @@ final class VitalsModel {
         self.now = now
     }
 
+    /// How fast the graphs glide: slower on battery or in Low Power Mode.
+    var graphFrameRate: Double { GraphFrameRate.rate(for: vitals) }
+
     /// One sample → publish it and extend the history.
     func refreshOnce() async {
         let sample = await sampler.sample()
@@ -62,7 +68,10 @@ final class VitalsModel {
     /// appends nothing, so the graph never shows a fake drop to 0 °C.
     func refreshThermalOnce() async {
         thermal = await thermalSampler.sample()
-        if let headline = thermal?.headline { thermalHistory.append(headline) }
+        if let headline = thermal?.headline {
+            thermalHistory.append(headline)
+            lastThermalSampleDate = now()
+        }
     }
 
     /// One power read. Like temperatures, a tick without a reading appends nothing.

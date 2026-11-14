@@ -20,7 +20,8 @@ struct GPUPanel: View {
                         range: MetricScale.fixed(100),
                         lineColor: theme.graphLine,
                         fillColor: theme.graphFill,
-                        gridColor: theme.gridLine)
+                        gridColor: theme.gridLine,
+                        timeAxis: CompressedTimeAxis(history: model.history.gpu, lastSample: model.lastSampleDate))
                 .frame(minHeight: 180)
 
             HStack {

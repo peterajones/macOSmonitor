@@ -25,12 +25,15 @@ struct NetworkPanel: View {
                             range: range,
                             lineColor: theme.graphLine,
                             fillColor: theme.graphFill,
-                            gridColor: theme.gridLine)
+                            gridColor: theme.gridLine,
+                            timeAxis: CompressedTimeAxis(history: model.history.networkIn, lastSample: model.lastSampleDate))
                 MetricGraph(values: model.history.networkOut.values,
                             range: range,
                             lineColor: theme.secondaryText,
                             fillColor: theme.graphFill,
-                            gridColor: .clear)
+                            gridColor: .clear,
+                            timeAxis: CompressedTimeAxis(history: model.history.networkOut, lastSample: model.lastSampleDate),
+                            showsBorder: false)
             }
             .frame(minHeight: 180)
 

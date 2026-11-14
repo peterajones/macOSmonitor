@@ -182,4 +182,36 @@ struct GraphGeometryTests {
         #expect(abs((segments.last?.control1.y ?? 0) - (20 + tangent * 10)) < 0.001)
         #expect(abs((segments.first?.control2.y ?? 0) - (20 - tangent * 10 / 3)) < 0.001)
     }
+
+    // The current-value marker sits where the drawn curve crosses the right edge.
+
+    @Test func curveHeightFollowsAStraightRun() {
+        let points = [CGPoint(x: 0, y: 100), CGPoint(x: 10, y: 50), CGPoint(x: 20, y: 0)]
+        let segments = GraphGeometry.smoothSegments(points)
+        #expect(GraphGeometry.curveY(atX: 15, start: points[0], segments: segments) == 25)
+    }
+
+    @Test func curveHeightAtASampleIsThatSample() {
+        let points = [CGPoint(x: 0, y: 80), CGPoint(x: 10, y: 20), CGPoint(x: 20, y: 60)]
+        let segments = GraphGeometry.smoothSegments(points)
+        #expect(GraphGeometry.curveY(atX: 10, start: points[0], segments: segments) == 20)
+        #expect(GraphGeometry.curveY(atX: 20, start: points[0], segments: segments) == 60)
+    }
+
+    @Test func curveHeightFollowsTheCurveNotTheChord() {
+        // Flat, then a step, then flat: the middle piece eases in and out, so a quarter of the
+        // way along it has risen 15.625, where a straight line would have risen 25.
+        let points = [CGPoint(x: 0, y: 0), CGPoint(x: 10, y: 0), CGPoint(x: 20, y: 100), CGPoint(x: 30, y: 100)]
+        let segments = GraphGeometry.smoothSegments(points)
+        let y = try! #require(GraphGeometry.curveY(atX: 12.5, start: points[0], segments: segments))
+        #expect(abs(y - 15.625) < 1e-9)
+    }
+
+    @Test func noCurveHeightOutsideTheCurve() {
+        let points = [CGPoint(x: 10, y: 0), CGPoint(x: 20, y: 100)]
+        let segments = GraphGeometry.smoothSegments(points)
+        #expect(GraphGeometry.curveY(atX: 5, start: points[0], segments: segments) == nil)
+        #expect(GraphGeometry.curveY(atX: 25, start: points[0], segments: segments) == nil)
+        #expect(GraphGeometry.curveY(atX: 15, start: points[0], segments: []) == nil)
+    }
 }

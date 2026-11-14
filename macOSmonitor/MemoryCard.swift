@@ -22,7 +22,8 @@ struct MemoryCard: View {
                         range: MetricScale.fixed(Double(model.vitals?.totalMemoryBytes ?? 1)),
                         lineColor: theme.color(for: .memory),
                         fillColor: theme.fillColor(for: .memory),
-                        gridColor: theme.gridLine)
+                        gridColor: theme.gridLine,
+                        timeAxis: CompressedTimeAxis(history: model.history.memoryUsed, lastSample: model.lastSampleDate))
                 .frame(minHeight: 90)
         }
         .padding(12)

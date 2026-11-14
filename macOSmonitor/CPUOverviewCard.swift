@@ -22,7 +22,8 @@ struct CPUOverviewCard: View {
                         range: MetricScale.fixed(100),
                         lineColor: theme.color(for: .cpu),
                         fillColor: theme.fillColor(for: .cpu),
-                        gridColor: theme.gridLine)
+                        gridColor: theme.gridLine,
+                        timeAxis: CompressedTimeAxis(history: model.history.cpu, lastSample: model.lastSampleDate))
                 .frame(minHeight: 120)
 
             Text("\(model.vitals?.coreCount ?? 0) logical processors")

@@ -45,6 +45,23 @@ enum GraphGeometry {
         }
     }
 
+    /// Height of the smoothed curve at `x`, or nil where the curve doesn't reach. `start` is
+    /// the point the first segment continues from. Each segment's controls sit a third of
+    /// its gap in from either end, so x runs linearly with the curve parameter t.
+    static func curveY(atX x: CGFloat, start: CGPoint, segments: [CurveSegment]) -> CGFloat? {
+        var from = start
+        for segment in segments {
+            defer { from = segment.end }
+            guard x >= from.x, x <= segment.end.x else { continue }
+            let gap = segment.end.x - from.x
+            let t = gap > 0 ? (x - from.x) / gap : 1
+            let u = 1 - t
+            return u * u * u * from.y + 3 * u * u * t * segment.control1.y
+                + 3 * u * t * t * segment.control2.y + t * t * t * segment.end.y
+        }
+        return nil
+    }
+
     /// How hard older samples are squeezed: the newest are roughly four times wider
     /// than an even spacing would make them.
     private static let compression = 9.0

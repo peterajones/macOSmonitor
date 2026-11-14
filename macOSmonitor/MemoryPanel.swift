@@ -41,7 +41,6 @@ struct MemoryPanel: View {
                 .frame(minHeight: 120)
                 .overlay(alignment: .topLeading) { rangeLabel(graphRange.upperBound) }
                 .overlay(alignment: .bottomLeading) { rangeLabel(graphRange.lowerBound) }
-                .overlay { Rectangle().strokeBorder(theme.color(for: .memory), lineWidth: 1) }
 
             HStack {
                 Text("5m ago")

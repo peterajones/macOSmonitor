@@ -8,9 +8,19 @@ struct CompressedTimeAxis {
     let sampleInterval: TimeInterval
 }
 
-/// An immediate-mode history graph: grid, filled area, and stroked trace.
+extension CompressedTimeAxis {
+    /// For a graph of `history`, sampled every `sampleInterval` seconds, with a time mark
+    /// every `gridInterval` samples.
+    init(history: MetricHistory, lastSample: Date?, sampleInterval: TimeInterval = 1, gridInterval: Int = 10) {
+        self.init(samplesSeen: history.totalAppended, gridInterval: gridInterval,
+                  lastSample: lastSample, sampleInterval: sampleInterval)
+    }
+}
+
+/// An immediate-mode history graph: grid, filled area, a glowing trace that brightens with
+/// its value, and a marker at the right edge pointing at the current value.
 /// Redrawn by ordinary @Observable invalidation at ~1 Hz, except with a compressed time
-/// axis, which glides at 15 fps and only runs while that graph is on screen.
+/// axis, which glides at `graphFrameRate` and only runs while that graph is on screen.
 struct MetricGraph: View {
     let values: [Double]
     var capacity: Int = 60
@@ -19,15 +29,26 @@ struct MetricGraph: View {
     let fillColor: Color
     let gridColor: Color
     var timeAxis: CompressedTimeAxis? = nil
+    /// A 1 pt frame in the line colour. Off for a second trace overlaid on another graph,
+    /// which already has one.
+    var showsBorder = true
     /// Called once per animation frame of the compressed time axis. A seam for tests that
     /// check the 15 fps animation runs only while the graph is on screen.
     var onFrame: (() -> Void)? = nil
 
+    @Environment(\.graphFrameRate) private var frameRate
+
     private let gridDivisions = 4
 
     var body: some View {
+        content.overlay {
+            if showsBorder { Rectangle().strokeBorder(lineColor, lineWidth: 1) }
+        }
+    }
+
+    @ViewBuilder private var content: some View {
         if let timeAxis {
-            TimelineView(.animation(minimumInterval: 1.0 / 15)) { timeline in
+            TimelineView(.animation(minimumInterval: 1.0 / frameRate)) { timeline in
                 let _ = onFrame?()
                 canvas(phase: GraphGeometry.scrollPhase(now: timeline.date,
                                                         lastSample: timeAxis.lastSample,
@@ -49,23 +70,49 @@ struct MetricGraph: View {
             guard points.count > 1 else { return }
 
             var trace = Path()
+            var markerY = points[points.count - 1].y
             if timeAxis == nil {
                 trace.addLines(points)
             } else {
+                let segments = GraphGeometry.smoothSegments(points)
                 trace.move(to: points[0])
-                for segment in GraphGeometry.smoothSegments(points) {
+                for segment in segments {
                     trace.addCurve(to: segment.end, control1: segment.control1, control2: segment.control2)
                 }
+                // The newest sample glides in from past the right edge: point at the curve
+                // where it crosses the edge, not at a sample that isn't visible yet.
+                markerY = GraphGeometry.curveY(atX: size.width, start: points[0], segments: segments) ?? markerY
             }
 
             var area = trace
             area.addLine(to: CGPoint(x: points[points.count - 1].x, y: size.height))
             area.addLine(to: CGPoint(x: points[0].x, y: size.height))
             area.closeSubpath()
-
             context.fill(area, with: .color(fillColor))
-            context.stroke(trace, with: .color(lineColor), lineWidth: 1.5)
+
+            context.drawLayer { glow in
+                glow.addFilter(.blur(radius: 3))
+                glow.stroke(trace, with: .color(lineColor.opacity(0.6)), lineWidth: 3)
+            }
+            // Full strength at the top of the range, dimmer towards the bottom, in the
+            // metric's own colour so every theme (and the monochrome VFDs) keeps its look.
+            let shading = GraphicsContext.Shading.linearGradient(
+                Gradient(colors: [lineColor, lineColor.opacity(0.55)]),
+                startPoint: .zero, endPoint: CGPoint(x: 0, y: size.height))
+            context.stroke(trace, with: shading, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+
+            context.fill(Self.marker(atY: markerY, width: size.width), with: .color(lineColor))
         }
+    }
+
+    /// A circle centred on the right edge, of which only the left half is drawn.
+    nonisolated static func marker(atY y: CGFloat, width: CGFloat) -> Path {
+        var path = Path()
+        // y points down, so sweeping from 90° (below) through 180° (left) ends above.
+        path.addRelativeArc(center: CGPoint(x: width, y: y), radius: 4,
+                            startAngle: .degrees(90), delta: .degrees(180))
+        path.closeSubpath()
+        return path
     }
 
     private func drawGrid(in context: inout GraphicsContext, size: CGSize, phase: Double) {

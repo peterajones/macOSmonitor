@@ -9,6 +9,8 @@ struct CoreGrid: View {
     let lineColor: Color
     let fillColor: Color
     let backgroundColor: Color
+    /// When the latest sample arrived, so the traces glide with the rest.
+    let lastSample: Date?
     @Environment(\.theme) private var theme
 
     private let columns = [GridItem(.adaptive(minimum: 68), spacing: 8)]
@@ -23,7 +25,8 @@ struct CoreGrid: View {
                                 range: MetricScale.fixed(100),
                                 lineColor: lineColor,
                                 fillColor: fillColor,
-                                gridColor: .clear)
+                                gridColor: .clear,
+                                timeAxis: CompressedTimeAxis(history: history, lastSample: lastSample))
                         .background(backgroundColor)
                         .frame(height: 56)
                     Text(index < labels.count ? labels[index] : "\(index)")

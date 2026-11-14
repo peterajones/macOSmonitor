@@ -55,7 +55,8 @@ struct EnergyPanel: View {
                         range: Self.range(model.powerHistory),
                         lineColor: theme.graphLine,
                         fillColor: theme.graphFill,
-                        gridColor: theme.gridLine)
+                        gridColor: theme.gridLine,
+                        timeAxis: CompressedTimeAxis(history: model.powerHistory, lastSample: model.lastSampleDate))
                 .frame(minHeight: 180)
 
             HStack {

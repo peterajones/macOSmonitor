@@ -145,6 +145,7 @@ struct ContentView: View {
         .task { await model.run() }
         // Battery history records every minute whichever surface is showing.
         .task { await batteryModel.run() }
+        .environment(\.graphFrameRate, vitalsModel.graphFrameRate)
     }
 
     /// The process table's rows as filtered and sorted now. Built here so the toolbar acts

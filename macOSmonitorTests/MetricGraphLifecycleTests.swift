@@ -9,10 +9,10 @@ private final class FrameCounter {
     var count = 0
 }
 
-/// The Memory graph's compressed time axis animates at 15 fps, which costs ~18% of a core.
-/// It is only acceptable while the graph is on screen. Navigating away from the Memory panel
-/// removes the graph from the view hierarchy, so these tests host it in a real window, count
-/// frames, remove it, and check the frames stop.
+/// Every graph glides at `graphFrameRate` (30 fps, 15 on battery), which costs real CPU
+/// (~18% of a core for a 12-core CPU panel). It is only acceptable while the graph is on
+/// screen. Navigating away from a panel removes its graphs from the view hierarchy, so these
+/// tests host one in a real window, count frames, remove it, and check the frames stop.
 @MainActor
 @Suite(.serialized)
 struct MetricGraphLifecycleTests {
@@ -46,11 +46,11 @@ struct MetricGraphLifecycleTests {
 
         try await Task.sleep(for: .milliseconds(600))
         let whileShown = counter.count
-        // 15 fps for 0.6 s is ~9 frames; 4 leaves room for a slow CI machine. A 1 Hz redraw
+        // 30 fps for 0.6 s is ~18 frames; 4 leaves room for a slow CI machine. A 1 Hz redraw
         // (the animation silently gone) would give 1 or 2.
         #expect(whileShown >= 4, "graph drew \(whileShown) frames in 0.6 s while on screen")
 
-        // Navigating away from the Memory panel removes the graph from the hierarchy.
+        // Navigating away from a panel removes its graphs from the hierarchy.
         window.contentView = NSView()
         try await Task.sleep(for: .milliseconds(100))   // let an in-flight frame land
         let atRemoval = counter.count
